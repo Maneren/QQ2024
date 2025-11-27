@@ -10,7 +10,6 @@ class IModel:
 
 
 class Environment:
-
     result_cols = ["H", "A"]
 
     odds_cols = ["OddsH", "OddsA"]
@@ -38,7 +37,6 @@ class Environment:
         min_bet=0,
         max_bet=np.inf,
     ):
-
         self.games = games
         self.players = players
         self.games[self.bet_cols] = 0.0
@@ -63,7 +61,6 @@ class Environment:
     def run(self):
         print(f"Start: {self.start_date}, End: {self.end_date}")
         for date in pd.date_range(self.start_date, self.end_date):
-
             # get results from previous day(s) and evaluate bets
             inc = self._next_date(date)
 
@@ -112,7 +109,7 @@ class Environment:
 
             # save current bankroll
             self._save_state(date + pd.Timedelta(6, unit="h"), 0.0)
-        
+
         print(f"{date} Bankroll: {self.bankroll:.2f}   ", end="\r")
 
         return games.drop(["Open", *self.bet_cols], axis=1), players

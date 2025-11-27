@@ -10,11 +10,11 @@ Pokud daný výsledek nenastane, sázkař svou sázku prohrál.
 **Příklad:**
 Pro první zápas Děčín - Nymburk vypíše bookmaker kurzy 2.08 na výhru domácích (Děčín) a 1.72 na vítězství Nymburku.
 Pro druhý zápas Pardubice - Slavia Praha vypíše bookmaker kurzy 1.19 na výhru Pardubic a 4.55 na vítězství Slavie.
-Sázkař, který má k dispozici 1000 Kč, se rozhodne vsadit 100 Kč na vítězství domácího Děčína, tedy na kurz 2.08, a 50 Kč na vítězství hostující Slavie, tedy na kurz 4.55. Po vsazení vkladů má na svém kontě 850 Kč. Předpokládejmě, že obě utkání skončí výhrou domácích, tedy Děčína a Pardubic. Z prvního zápasu sázkař vyhrává 2.08 x 100 = 208 Kč. Sázka 50 Kč na druhý zápas propadá, jelikož vyhráli Pardubice a nikoliv Slavie. Ve finále má sázkař na kontě 1058 Kč. 
+Sázkař, který má k dispozici 1000 Kč, se rozhodne vsadit 100 Kč na vítězství domácího Děčína, tedy na kurz 2.08, a 50 Kč na vítězství hostující Slavie, tedy na kurz 4.55. Po vsazení vkladů má na svém kontě 850 Kč. Předpokládejmě, že obě utkání skončí výhrou domácích, tedy Děčína a Pardubic. Z prvního zápasu sázkař vyhrává 2.08 x 100 = 208 Kč. Sázka 50 Kč na druhý zápas propadá, jelikož vyhráli Pardubice a nikoliv Slavie. Ve finále má sázkař na kontě 1058 Kč.
 
 ## Zadání
 
-Vaším úkolem bude naprogramovat co nejúspešnějšího sázkaře. V naší soutěži však nebude rozhodovat počet shlédnutých zápasů, nýbrž vaše schopnost navrhnout, implementovat a otestovat model, který se naučí predikovat výsledky nadcházejících zápasů z historických dat. 
+Vaším úkolem bude naprogramovat co nejúspešnějšího sázkaře. V naší soutěži však nebude rozhodovat počet shlédnutých zápasů, nýbrž vaše schopnost navrhnout, implementovat a otestovat model, který se naučí predikovat výsledky nadcházejících zápasů z historických dat.
 
 Váš sázkař je reprezentován třídou [`Model`](src/model.py) s metodou `place_bets`, skrze kterou každý den, kdy jsou na trhu nějaké sázkařské příležitosti, obdržíte shrnutí, sázkařské příležitosti a inkrement dat. Od vás budeme očekávat sázky, které si přejete uskutečnit. Jelikož jednotlivé ročníky soutěží (sezóny) trvají několik měsíců, bude se váš model muset v průběhu sezóny adaptovat na nové výsledky a formu hráčů.
 
@@ -26,16 +26,16 @@ V metodě `place_bets` se v jednotlivých argumentech setkáte celkem se čtyřm
 
 Summary dataframe obsahuje informace o současném stavu sázkařského prostředí. Dozvíte se v něm aktuální datum a jaké prostředky máte k dispozici.
 
-|    |   Bankroll | Date                |   Min_bet |   Max_bet |
-|---:|-----------:|:--------------------|----------:|----------:|
-|  0 |    1000    | 1975-11-06 00:00    |    1      |    100    |
+|  ID | Bankroll | Date             | Min_bet | Max_bet |
+| --: | -------: | :--------------- | ------: | ------: |
+|   0 |     1000 | 1975-11-06 00:00 |       1 |     100 |
 
 <table>
 <tr>
 <td>
 
 - **Bankroll** - Aktuální stav vašeho konta
-- **Date** - Aktuální datum 
+- **Date** - Aktuální datum
 </td>
 <td>
 
@@ -49,15 +49,15 @@ Summary dataframe obsahuje informace o současném stavu sázkařského prostře
 
 Sázkařské příležitosti obsahují zápasy hrané v nadcházejících dnech. Příležitosti jsou platné do data konání zápasu (včetně). Je tedy možné vsadit na danou příležitost **vícekrát**. Vámi dříve vsazené částky budete mít k dispozici ve sloupcích `BetH` a `BetA`.
 
-| ID | Season|     Date   | HID  | AID  |  N  |POFF |  OddsH   |   OddsA  |  BetH | BetA  |
-|---:|------:|-----------:|-----:|-----:|----:|----:|---------:|---------:|------:|------:|
-| 15 |   1   | 1975-11-08 |  22  |  41  |  0  |  0  | 1.930235 | 1.916195 |  10.0 |  0.0  |
-| 16 |   1   | 1975-11-08 |  12  |  24  |  0  |  0  | 1.418280 | 3.048582 |  0.0  |  7.0  |
-| 17 |   1   | 1975-11-08 |   1  |  17  |  0  |  0  | 1.520244 | 2.650582 |  0.0  |  0.0  |
-| 18 |   1   | 1975-11-08 |   2  |  42  |  0  |  0  | 1.491004 | 2.748333 |  5.0  |  0.0  |
-| 19 |   1   | 1975-11-08 |  19  |  35  |  0  |  0  | 1.302708 | 3.808664 |  5.0  |  0.0  |
-| 20 |   1   | 1975-11-09 |  13  |  19  |  0  |  0  | 1.471073 | 2.821692 |  0.0  |  0.0  |
-| 21 |   1   | 1975-11-09 |  21  |  11  |  0  |  0  | 1.505497 | 2.698513 |  0.0  |  0.0  |
+|  ID | Season |       Date | HID | AID |   N | POFF |    OddsH |    OddsA | BetH | BetA |
+| --: | -----: | ---------: | --: | --: | --: | ---: | -------: | -------: | ---: | ---: |
+|  15 |      1 | 1975-11-08 |  22 |  41 |   0 |    0 | 1.930235 | 1.916195 | 10.0 |  0.0 |
+|  16 |      1 | 1975-11-08 |  12 |  24 |   0 |    0 | 1.418280 | 3.048582 |  0.0 |  7.0 |
+|  17 |      1 | 1975-11-08 |   1 |  17 |   0 |    0 | 1.520244 | 2.650582 |  0.0 |  0.0 |
+|  18 |      1 | 1975-11-08 |   2 |  42 |   0 |    0 | 1.491004 | 2.748333 |  5.0 |  0.0 |
+|  19 |      1 | 1975-11-08 |  19 |  35 |   0 |    0 | 1.302708 | 3.808664 |  5.0 |  0.0 |
+|  20 |      1 | 1975-11-09 |  13 |  19 |   0 |    0 | 1.471073 | 2.821692 |  0.0 |  0.0 |
+|  21 |      1 | 1975-11-09 |  21 |  11 |   0 |    0 | 1.505497 | 2.698513 |  0.0 |  0.0 |
 
 <table>
 <tr>
@@ -65,7 +65,7 @@ Sázkařské příležitosti obsahují zápasy hrané v nadcházejících dnech.
 
 - **ID** - Unikátní identifikátor zápasu (index tabulky)
 - **Season** - Označení sezóny zápasu
-- **Date** - Datum konání zápasu 
+- **Date** - Datum konání zápasu
 - **HID** - Unikátní identifikátor domácího týmu
 - **AID** - Unikátní identifikátor hostujícího týmu
 - **N** - Přepínač zda se jedná o zápas na neutrální půdě
@@ -83,19 +83,19 @@ Sázkařské příležitosti obsahují zápasy hrané v nadcházejících dnech.
 </tr>
 </table>
 
-
 ### Inkrementální data
-Inkrementální data obsahují výsledky a statistiky, které jste doposud neviděli. Tato data jsou složena ze dvou tabulek (DataFrames). [Games DataFrame](#games-dataframe) obsahující informace o parametrech odehraných zápasů a [Players DataFrame](#players-dataframe) obsahující přehled o výkonu jednotlivých hráčů v odehraných zápasech. Počítejte s tím, že první inkrement který uvidíte, bude obsahovat i zápasy staršího data (z předcházejících sezón). 
+
+Inkrementální data obsahují výsledky a statistiky, které jste doposud neviděli. Tato data jsou složena ze dvou tabulek (DataFrames). [Games DataFrame](#games-dataframe) obsahující informace o parametrech odehraných zápasů a [Players DataFrame](#players-dataframe) obsahující přehled o výkonu jednotlivých hráčů v odehraných zápasech. Počítejte s tím, že první inkrement který uvidíte, bude obsahovat i zápasy staršího data (z předcházejících sezón).
 
 #### Games DataFrame
 
-| ID | Season | Date | HID | AID | N | POFF | OddsH | OddsA | H | A | HSC | ASC | HFGM | AFGM | HFGA | AFGA | HFG3M | AFG3M | HFG3A | AFG3A | HFTM | AFTM | HFTA | AFTA | HORB | AORB | HDRB | ADRB | HRB | ARB | HAST | AAST | HSTL | ASTL | HBLK | ABLK | HTOV | ATOV | HPF | APF |
-|--:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|
-| 15 | 1 | 1975-11-08 | 22 | 41 | 0 | 0 | 1.930235 | 1.916195 | 1 | 0 | 111 | 105 | 46.0 | 41.0 | 93.0 | 85.0 | 3.0 | 0.0 | 7.0 | 4.0 | 16.0 | 23.0 | 23.0 | 28.0 | 11.0 | 12.0 | 30.0 | 33.0 | 41.0 | 45.0 | 27.0 | 23.0 | 12.0 | 4.0 | 2.0 | 7.0 | 11.0 | 19.0 | 24.0 | 20.0 |
-| 16 | 1 | 1975-11-08 | 12 | 24 | 0 | 0 | 1.418280 | 3.048582 | 1 | 0 | 119 | 110 | 50.0 | 40.0 | 111.0 | 93.0 | 1.0 | 3.0 | 7.0 | 7.0 | 18.0 | 27.0 | 29.0 | 41.0 | 28.0 | 18.0 | 38.0 | 31.0 | 66.0 | 49.0 | 29.0 | 26.0 | 13.0 | 8.0 | 16.0 | 9.0 | 12.0 | 19.0 | 31.0 | 23.0 |
-| 17 | 1 | 1975-11-08 | 1 | 17 | 0 | 0 | 1.520244 | 2.650582 | 1 | 0 | 112 | 102 | 45.0 | 38.0 | 88.0 | 80.0 | 1.0 | 2.0 | 5.0 | 4.0 | 21.0 | 24.0 | 34.0 | 29.0 | 13.0 | 16.0 | 22.0 | 28.0 | 35.0 | 44.0 | 27.0 | 29.0 | 7.0 | 5.0 | 6.0 | 1.0 | 11.0 | 20.0 | 22.0 | 24.0 |
-| 18 | 1 | 1975-11-08 | 2 | 42 | 0 | 0 | 1.491004 | 2.748333 | 1 | 0 | 114 | 103 | 49.0 | 38.0 | 102.0 | 98.0 | 2.0 | 1.0 | 4.0 | 5.0 | 14.0 | 26.0 | 19.0 | 33.0 | 19.0 | 14.0 | 41.0 | 27.0 | 60.0 | 41.0 | 31.0 | 19.0 | 7.0 | 9.0 | 5.0 | 3.0 | 19.0 | 10.0 | 28.0 | 20.0 |
-| 19 | 1 | 1975-11-08 | 19 | 35 | 0 | 0 | 1.302708 | 3.808664 | 1 | 0 | 131 | 111 | 50.0 | 38.0 | 92.0 | 77.0 | 2.0 | 0.0 | 3.0 | 3.0 | 29.0 | 35.0 | 39.0 | 42.0 | 16.0 | 9.0 | 27.0 | 21.0 | 43.0 | 30.0 | 27.0 | 17.0 | 10.0 | 5.0 | 2.0 | 5.0 | 22.0 | 22.0 | 35.0 | 31.0 |
+|  ID | Season |       Date | HID | AID |   N | POFF |    OddsH |    OddsA |   H |   A | HSC | ASC | HFGM | AFGM |  HFGA | AFGA | HFG3M | AFG3M | HFG3A | AFG3A | HFTM | AFTM | HFTA | AFTA | HORB | AORB | HDRB | ADRB |  HRB |  ARB | HAST | AAST | HSTL | ASTL | HBLK | ABLK | HTOV | ATOV |  HPF |  APF |
+| --: | -----: | ---------: | --: | --: | --: | ---: | -------: | -------: | --: | --: | --: | --: | ---: | ---: | ----: | ---: | ----: | ----: | ----: | ----: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+|  15 |      1 | 1975-11-08 |  22 |  41 |   0 |    0 | 1.930235 | 1.916195 |   1 |   0 | 111 | 105 | 46.0 | 41.0 |  93.0 | 85.0 |   3.0 |   0.0 |   7.0 |   4.0 | 16.0 | 23.0 | 23.0 | 28.0 | 11.0 | 12.0 | 30.0 | 33.0 | 41.0 | 45.0 | 27.0 | 23.0 | 12.0 |  4.0 |  2.0 |  7.0 | 11.0 | 19.0 | 24.0 | 20.0 |
+|  16 |      1 | 1975-11-08 |  12 |  24 |   0 |    0 | 1.418280 | 3.048582 |   1 |   0 | 119 | 110 | 50.0 | 40.0 | 111.0 | 93.0 |   1.0 |   3.0 |   7.0 |   7.0 | 18.0 | 27.0 | 29.0 | 41.0 | 28.0 | 18.0 | 38.0 | 31.0 | 66.0 | 49.0 | 29.0 | 26.0 | 13.0 |  8.0 | 16.0 |  9.0 | 12.0 | 19.0 | 31.0 | 23.0 |
+|  17 |      1 | 1975-11-08 |   1 |  17 |   0 |    0 | 1.520244 | 2.650582 |   1 |   0 | 112 | 102 | 45.0 | 38.0 |  88.0 | 80.0 |   1.0 |   2.0 |   5.0 |   4.0 | 21.0 | 24.0 | 34.0 | 29.0 | 13.0 | 16.0 | 22.0 | 28.0 | 35.0 | 44.0 | 27.0 | 29.0 |  7.0 |  5.0 |  6.0 |  1.0 | 11.0 | 20.0 | 22.0 | 24.0 |
+|  18 |      1 | 1975-11-08 |   2 |  42 |   0 |    0 | 1.491004 | 2.748333 |   1 |   0 | 114 | 103 | 49.0 | 38.0 | 102.0 | 98.0 |   2.0 |   1.0 |   4.0 |   5.0 | 14.0 | 26.0 | 19.0 | 33.0 | 19.0 | 14.0 | 41.0 | 27.0 | 60.0 | 41.0 | 31.0 | 19.0 |  7.0 |  9.0 |  5.0 |  3.0 | 19.0 | 10.0 | 28.0 | 20.0 |
+|  19 |      1 | 1975-11-08 |  19 |  35 |   0 |    0 | 1.302708 | 3.808664 |   1 |   0 | 131 | 111 | 50.0 | 38.0 |  92.0 | 77.0 |   2.0 |   0.0 |   3.0 |   3.0 | 29.0 | 35.0 | 39.0 | 42.0 | 16.0 |  9.0 | 27.0 | 21.0 | 43.0 | 30.0 | 27.0 | 17.0 | 10.0 |  5.0 |  2.0 |  5.0 | 22.0 | 22.0 | 35.0 | 31.0 |
 
 <table>
 <tr>
@@ -103,7 +103,7 @@ Inkrementální data obsahují výsledky a statistiky, které jste doposud nevid
 
 - **ID** - Unikátní identifikátor zápasu (index tabulky)
 - **Season** - Označení sezóny zápasu
-- **Date** - Datum konání zápasu 
+- **Date** - Datum konání zápasu
 - **HID** - Unikátní identifikátor domácího týmu
 - **AID** - Unikátní identifikátor hostujícího týmu
 - **N** - Přepínač zda se jedná o zápas na neutrální půdě
@@ -129,7 +129,7 @@ Inkrementální data obsahují výsledky a statistiky, které jste doposud nevid
 - **HFTM** - Počet úspěšných trestných hodů domácího týmu
 - **AFTM** - Počet úspěšných trestných hodů hostujícího týmu
 - **HFTA** - Celkový počet trestných hodů domácího týmu
-- **AFTA** - Celkový počet trestných hodů hostujícího týmu 
+- **AFTA** - Celkový počet trestných hodů hostujícího týmu
 - **HORB** - Počet útočných doskoků domácího týmu
 - **AORB** - Počet útočných doskoků hostujícího týmu
 - **HDRB** - Počet obranných doskoků domácího týmu
@@ -153,26 +153,26 @@ Inkrementální data obsahují výsledky a statistiky, které jste doposud nevid
 
 #### Players DataFrame
 
-| | Season | Date | Player | Team | Game | MIN | FGM | FGA | FG3M | FG3A | FTM | FTA | ORB | DRB | RB | AST | STL | BLK | TOV | PF | PTS
-|--:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|
-| 198 | 1 | 1975-11-08 | 3048 | 12 | 16 | 16.0 | 2 | 3.0 | 0.0 | 0.0 | 1 | 2.0 | 0.0 | 3.0 | 3.0 | 1.0 | 0.0 | 0.0 | 0.0 | 2.0 | 5
-| 199 | 1 | 1975-11-08 | 4000 | 24 | 16 | 33.0 | 11 | 21.0 | 0.0 | 1.0 | 3 | 3.0 | 3.0 | 2.0 | 5.0 | 1.0 | 0.0 | 1.0 | 1.0 | 1.0 | 25
-| 200 | 1 | 1975-11-08 | 1994 | 24 | 16 | 21.0 | 0 | 9.0 | 0.0 | 0.0 | 0 | 0.0 | 3.0 | 9.0 | 12.0 | 1.0 | 1.0 | 0.0 | 2.0 | 3.0 | 0
-| 201 | 1 | 1975-11-08 | 1082 | 12 | 16 | 16.0 | 0 | 2.0 | 0.0 | 1.0 | 3 | 4.0 | 3.0 | 1.0 | 4.0 | 4.0 | 2.0 | 0.0 | 0.0 | 3.0 | 3
-| 202 | 1 | 1975-11-08 | 2621 | 24 | 16 | 24.0 | 0 | 5.0 | 0.0 | 0.0 | 1 | 2.0 | 0.0 | 5.0 | 5.0 | 2.0 | 1.0 | 1.0 | 1.0 | 2.0 | 1
+|  ID | Season |       Date | Player | Team | Game |  MIN | FGM |  FGA | FG3M | FG3A | FTM | FTA | ORB | DRB |   RB | AST | STL | BLK | TOV |  PF | PTS |
+| --: | -----: | ---------: | -----: | ---: | ---: | ---: | --: | ---: | ---: | ---: | --: | --: | --: | --: | ---: | --: | --: | --: | --: | --: | --: |
+| 198 |      1 | 1975-11-08 |   3048 |   12 |   16 | 16.0 |   2 |  3.0 |  0.0 |  0.0 |   1 | 2.0 | 0.0 | 3.0 |  3.0 | 1.0 | 0.0 | 0.0 | 0.0 | 2.0 |   5 |
+| 199 |      1 | 1975-11-08 |   4000 |   24 |   16 | 33.0 |  11 | 21.0 |  0.0 |  1.0 |   3 | 3.0 | 3.0 | 2.0 |  5.0 | 1.0 | 0.0 | 1.0 | 1.0 | 1.0 |  25 |
+| 200 |      1 | 1975-11-08 |   1994 |   24 |   16 | 21.0 |   0 |  9.0 |  0.0 |  0.0 |   0 | 0.0 | 3.0 | 9.0 | 12.0 | 1.0 | 1.0 | 0.0 | 2.0 | 3.0 |   0 |
+| 201 |      1 | 1975-11-08 |   1082 |   12 |   16 | 16.0 |   0 |  2.0 |  0.0 |  1.0 |   3 | 4.0 | 3.0 | 1.0 |  4.0 | 4.0 | 2.0 | 0.0 | 0.0 | 3.0 |   3 |
+| 202 |      1 | 1975-11-08 |   2621 |   24 |   16 | 24.0 |   0 |  5.0 |  0.0 |  0.0 |   1 | 2.0 | 0.0 | 5.0 |  5.0 | 2.0 | 1.0 | 1.0 | 1.0 | 2.0 |   1 |
 
 <table>
 <tr>
 <td>
 
 - **Season** - Označení sezóny zápasu
-- **Date** - Datum konání zápasu 
+- **Date** - Datum konání zápasu
 - **Player** - Unikátní identifikátor hráče
 - **Team** - Unikátní identifikátor týmu
 - **Game** - Unikátní identifikátor zápasu
 - **MIN** - Počet minut strávených hráčem na hřišti během zápasu
 - **FGM** - Počet úspěšných pokusů o koš (mimo trestných hodů)
-- **FGA** - Celkový počet pokusů o koš (mimo trestných hodů) 
+- **FGA** - Celkový počet pokusů o koš (mimo trestných hodů)
 - **FG3M** - Počet úspěšných pokusů o trojku
 - **FG3A** - Celkový počet pokusů o trojku
 
@@ -195,24 +195,22 @@ Inkrementální data obsahují výsledky a statistiky, které jste doposud nevid
 </tr>
 </table>
 
-
 ### Bets DataFrame
 
 Tento DataFrame očekáváme jako vaší odpověď z metody `place_bets`. I pokud nechcete pokládat žádné sázky, musíte poslat (alespoň prázdný) `DataFrame`.
 
-|   ID |     BetH |     BetA |
-|----------:|---------:|---------:|
-|     15 | 0.0  | 0.0 |
-|     16 | 0.0  | 0.0 |
-|     16 | 0.0  | 0.0 |
-|     17 | 0.0  | 0.0 |
-|     18 | 10.0 | 0.0 |
-|     19 | 0.0  | 7.5 |
+|  ID | BetH | BetA |
+| --: | ---: | ---: |
+|  15 |  0.0 |  0.0 |
+|  16 |  0.0 |  0.0 |
+|  16 |  0.0 |  0.0 |
+|  17 |  0.0 |  0.0 |
+|  18 | 10.0 |  0.0 |
+|  19 |  0.0 |  7.5 |
 
 - **ID** - Index odpovídajícího zápasu z [Opps DataFrame](#opps-dataframe) (index tabulky)
 - **BetH** - Vaše sázky na výhru domácího týmu
 - **BetA** - Vaše sázky na výhru hostujícího týmu
-
 
 ## Technické náležitosti
 
