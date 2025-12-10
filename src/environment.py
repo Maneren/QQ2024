@@ -1,12 +1,16 @@
-from typing import Optional
+from __future__ import annotations
+
+from typing import Protocol, cast
 
 import numpy as np
 import pandas as pd
 
 
-class IModel:
-    def place_bets(self, summary: pd.DataFrame, opps: pd.DataFrame, inc: pd.DataFrame):
-        raise NotImplementedError()
+class IModel(Protocol):
+    def place_bets(
+        self, summary: pd.DataFrame, opps: pd.DataFrame, inc: pd.DataFrame
+    ) -> pd.DataFrame:
+        raise NotImplementedError
 
 
 class Environment:
@@ -20,7 +24,7 @@ class Environment:
 
     # fmt: off
     feature_cols = [
-        "HFGM", "AFGM", "HFGA", "AFGA", "HFG3M", "AFG3M", "HFG3A", "AFG3A", 
+        "HFGM", "AFGM", "HFGA", "AFGA", "HFG3M", "AFG3M", "HFG3A", "AFG3A",
         "HFTM", "AFTM", "HFTA", "AFTA", "HORB", "AORB", "HDRB", "ADRB", "HRB", "ARB", "HAST",
         "AAST", "HSTL", "ASTL", "HBLK", "ABLK", "HTOV", "ATOV", "HPF", "APF",
     ]
@@ -31,9 +35,9 @@ class Environment:
         games: pd.DataFrame,
         players: pd.DataFrame,
         model: IModel,
-        start_date: Optional[pd.Timestamp] = None,
-        end_date: Optional[pd.Timestamp] = None,
-        init_bankroll=1000.0,
+        start_date: pd.Timestamp | None = None,
+        end_date: pd.Timestamp | None = None,
+        init_bankroll: float = 1000.0,
         min_bet=0,
         max_bet=np.inf,
     ):
@@ -41,11 +45,12 @@ class Environment:
         self.players = players
         self.games[self.bet_cols] = 0.0
 
-        self.start_date: pd.Timestamp = (
-            start_date if start_date is not None else self.games["Open"].min()
+        self.start_date = cast(
+            pd.Timestamp,
+            start_date if start_date is not None else self.games["Open"].min(),
         )
-        self.end_date: pd.Timestamp = (
-            end_date if end_date is not None else self.games["Date"].max()
+        self.end_date = cast(
+            pd.Timestamp, end_date if end_date is not None else self.games["Date"].max()
         )
 
         self.model = model
@@ -85,8 +90,7 @@ class Environment:
 
     def get_history(self):
         history = pd.DataFrame(data=self.history)
-        history = history.set_index("Date")
-        return history
+        return history.set_index("Date")
 
     def _next_date(self, date: pd.Timestamp):
         games = self.games.loc[
@@ -144,7 +148,7 @@ class Environment:
 
         return validated_bets
 
-    def _place_bets(self, date: pd.Timestamp, bets: pd.DataFrame):
+    def _place_bets(self, date: pd.Timestamp, bets: pd.DataFrame) -> None:
         # print("Placing bets")
         self.games.loc[bets.index, self.bet_cols] = self.games.loc[
             bets.index, self.bet_cols
@@ -155,7 +159,7 @@ class Environment:
 
         self._save_state(date + pd.Timedelta(23, unit="h"), bets.values.sum())
 
-    def _generate_summary(self, date: pd.Timestamp):
+    def _generate_summary(self, date: pd.Timestamp) -> pd.DataFrame:
         summary = {
             "Bankroll": self.bankroll,
             "Date": date,
@@ -164,7 +168,7 @@ class Environment:
         }
         return pd.Series(summary).to_frame().T
 
-    def _save_state(self, date: pd.Timestamp, cash_invested: float):
+    def _save_state(self, date: pd.Timestamp, cash_invested: float) -> None:
         self.history["Date"].append(date)
         self.history["Bankroll"].append(self.bankroll)
         self.history["Cash_Invested"].append(cash_invested)

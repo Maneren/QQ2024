@@ -1,0 +1,21 @@
+[project]
+name = "qq2024"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = "~=3.13.0"
+dependencies = [
+  "jupyter",
+  "numpy",
+  "scipy",
+  "matplotlib",
+  "tensorflow-cpu",
+  "types-tensorflow",
+  "pandas",
+  "pandas-stubs",
+  "seaborn",
+  "statsmodels",
+  "scikit-learn",
+  "openpyxl",
+  "xgboost-cpu",
+]
