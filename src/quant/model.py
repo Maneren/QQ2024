@@ -12,6 +12,7 @@ import tensorflow as tf
 from keras import optimizers
 from keras.callbacks import EarlyStopping
 from keras.layers import (
+    AveragePooling1D,
     Concatenate,
     Conv1D,
     Dense,
@@ -296,8 +297,8 @@ class Ai:
             x_train,
             y_train,
             shuffle=True,
-            epochs=3,
-            batch_size=200,
+            epochs=1000,
+            batch_size=500,
             verbose=1,
             validation_data=(x_val, y_val),
             callbacks=[
@@ -347,7 +348,7 @@ class Ai:
         ):
             plot.plot(epochs, values, label=feature_name)
 
-        plt.title("Mean absolute Feature Sensitivities Over Epochs")
+        plt.title("Mean Absolute Feature Sensitivity Over Epochs")
         plt.xlabel("Epoch")
         plt.ylabel("Mean Absolute Sensitivity")
         plt.legend(loc="upper right", bbox_to_anchor=(1, 1))
@@ -362,9 +363,8 @@ class Ai:
         scalar_input = Input(shape=scalar_shape[1:], name="scalar_input")
 
         x = Conv1D(
-            16, 6, activation="relu", padding="same", kernel_regularizer=L2(0.01)
+            16, 8, activation="tanh", padding="same", kernel_regularizer=L2(0.01)
         )(main_input)
-        x = Dropout(0.05)(x)
         x = MaxPooling1D(8, strides=2)(x)
         x = Flatten()(x)
 
