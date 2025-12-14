@@ -83,7 +83,6 @@ class Model(IModel):
         "HomeElo",
         "AwayElo",
         "EloByLocation",
-        "EloDiff",
         "Neutral",
         "Playoff",
     )
@@ -111,7 +110,6 @@ class Model(IModel):
                 home_elo,
                 away_elo,
                 elo_by_location_prediction,
-                home_elo - away_elo,
                 match.N,
                 match.POFF,
             ],
@@ -365,7 +363,7 @@ class Ai:
             y_train,
             shuffle=True,
             epochs=1000,
-            batch_size=200,
+            batch_size=500,
             verbose=1,
             validation_data=(x_val, y_val),
             callbacks=[
@@ -481,12 +479,12 @@ class Ai:
 
         l2 = regularizers.L2(0.01)
 
-        self.model.add(InputLayer(shape=(32,)))
+        self.model.add(InputLayer(shape=(31,)))
         # self.model.add(
         #     Dense(10, activation="tanh", use_bias=True, kernel_regularizer=l2)
         # )
         self.model.add(
-            Dense(64, activation="tanh", use_bias=True, kernel_regularizer=l2)
+            Dense(32, activation="tanh", use_bias=True, kernel_regularizer=l2)
         )
         # self.model.add(Dropout(0.05))
         # self.model.add(
