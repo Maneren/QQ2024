@@ -12,17 +12,13 @@ import tensorflow as tf
 from keras import optimizers
 from keras.callbacks import EarlyStopping
 from keras.layers import (
-    AveragePooling1D,
     Concatenate,
     Conv1D,
     Dense,
-    Dropout,
     Flatten,
     Input,
-    InputLayer,
     MaxPooling1D,
 )
-from keras.models import Sequential
 from keras.regularizers import L2
 from numpy.typing import NDArray
 from sklearn import metrics, model_selection
@@ -368,14 +364,13 @@ class Ai:
 
         combined = Concatenate()([x, scalar_input])
 
-        dense = Dense(16, activation="tanh", kernel_regularizer=L2())(combined)
+        dense = Dense(32, activation="tanh", kernel_regularizer=L2())(combined)
         output = Dense(1, name="output", use_bias=True)(dense)
 
         self.model = keras.Model(inputs=[main_input, scalar_input], outputs=output)
 
         print(self.model.summary())
 
-        # Adam
         optimizer = optimizers.Adam(
             learning_rate=0.01, beta_1=0.9, beta_2=0.999, amsgrad=False
         )
