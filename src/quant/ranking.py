@@ -1,5 +1,5 @@
 from typing import Protocol
-from quant.types import Match
+from quant.types import Match, Opp
 
 
 class RankingModel(Protocol):
@@ -155,7 +155,7 @@ class EloByLocation(RankingModel):
         away_elo = self.teams_away.setdefault(match.AID, TeamElo())
 
         played_enough = home_elo.games >= 10 and away_elo.games >= 10
-        return 100 * home_elo.predict(away_elo.rating) if played_enough else None
+        return 100 * home_elo.predict(away_elo.rating) if played_enough else 400
 
     def reset(self) -> None:
         """Reset the model."""

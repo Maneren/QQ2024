@@ -21,7 +21,7 @@ env = Environment(
     init_bankroll=1000,
     min_bet=5,
     max_bet=100,
-    start_date=pd.Timestamp("1985-11-11"),
+    start_date=pd.Timestamp("1990-01-01"),
 )
 
 evaluation = env.run()

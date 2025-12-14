@@ -1,16 +1,11 @@
 from __future__ import annotations
 
-from typing import Protocol, cast
+from typing import cast
 
 import numpy as np
 import pandas as pd
 
-
-class IModel(Protocol):
-    def place_bets(
-        self, summary: pd.DataFrame, opps: pd.DataFrame, inc: pd.DataFrame
-    ) -> pd.DataFrame:
-        raise NotImplementedError
+from quant.types import IModel
 
 
 class Environment:
@@ -79,9 +74,9 @@ class Environment:
 
             bets = self.model.place_bets(summary, opps, inc)
 
-            validated_bets = self._validate_bets(bets, opps)
-
-            self._place_bets(date, validated_bets)
+            # validated_bets = self._validate_bets(bets, opps)
+            #
+            # self._place_bets(date, validated_bets)
 
         # evaluate bets of last game day
         self._next_date(self.end_date + pd.to_timedelta(1, "days"))

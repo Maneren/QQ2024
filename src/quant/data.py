@@ -21,12 +21,12 @@ class TeamData:
         "PSA",
         "PSAH",
         "PSAA",
-        "PLTA",
-        "PLTAH",
-        "PLTAA",
-        "PD",
-        "PDH",
-        "PDA",
+        # "PLTA",
+        # "PLTAH",
+        # "PLTAA",
+        # "PD",
+        # "PDH",
+        # "PDA",
     )
 
     TEAM_COLUMNS: tuple[str, ...] = (
@@ -47,7 +47,7 @@ class TeamData:
         self,
     ) -> None:
         """Init datastucture."""
-        self.date_last_match: pd.Timestamp = pd.to_datetime("1977-11-10")
+        self.date_last_match: pd.Timestamp = pd.to_datetime("1975-11-07")
 
         # short averages
         self.win_rate_S = RollingQueue(TeamData.N_SHORT)
@@ -83,7 +83,7 @@ class TeamData:
         self.points_diference_average_home_L = RollingQueue(TeamData.N_LONG)
         self.points_diference_average_away_L = RollingQueue(TeamData.N_LONG)
 
-    def _get_days_since_last_mach(self, today: pd.Timestamp) -> int:
+    def _get_days_since_last_match(self, today: pd.Timestamp) -> int:
         """Return number of days scince last mach."""
         return (today - self.date_last_match).days
 
@@ -128,7 +128,7 @@ class TeamData:
         """Return complete data vector for given team."""
         return pd.Series(
             [
-                self._get_days_since_last_mach(date),
+                self._get_days_since_last_match(date),
                 self.win_rate_S.average(),
                 self.win_rate_L.average(),
                 self.win_rate_home_S.average(),
@@ -141,18 +141,18 @@ class TeamData:
                 self.points_scored_average_away_L.average(),
                 self.points_scored_average_home_L.average(),
                 self.points_scored_average_away_S.average(),
-                self.points_lost_to_x_average_S.average(),
-                self.points_lost_to_x_average_L.average(),
-                self.points_lost_to_x_average_home_S.average(),
-                self.points_lost_to_x_average_home_L.average(),
-                self.points_lost_to_x_average_away_S.average(),
-                self.points_lost_to_x_average_away_L.average(),
-                self.points_diference_average_S.average(),
-                self.points_diference_average_L.average(),
-                self.points_diference_average_home_S.average(),
-                self.points_diference_average_home_L.average(),
-                self.points_diference_average_away_S.average(),
-                self.points_diference_average_away_L.average(),
+                # self.points_lost_to_x_average_S.average(),
+                # self.points_lost_to_x_average_L.average(),
+                # self.points_lost_to_x_average_home_S.average(),
+                # self.points_lost_to_x_average_home_L.average(),
+                # self.points_lost_to_x_average_away_S.average(),
+                # self.points_lost_to_x_average_away_L.average(),
+                # self.points_diference_average_S.average(),
+                # self.points_diference_average_L.average(),
+                # self.points_diference_average_home_S.average(),
+                # self.points_diference_average_home_L.average(),
+                # self.points_diference_average_away_S.average(),
+                # self.points_diference_average_away_L.average(),
             ],
             index=pd.Index(self.COLUMNS[team]),
         )

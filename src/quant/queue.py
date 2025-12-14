@@ -1,3 +1,4 @@
+from typing import cast
 import numpy as np
 from itertools import cycle
 
@@ -16,6 +17,10 @@ class RollingQueue:
         self.values[next(self.index) % len(self.values)] = value
         self.size = min(self.size + 1, len(self.values))
 
-    def average(self) -> float:
+    def average(self) -> np.float64:
         """Return average value."""
-        return np.sum(self.values) / self.size
+        return (
+            cast(np.float64, np.mean(self.values))
+            if len(self.values) > 0
+            else np.float64(0)
+        )

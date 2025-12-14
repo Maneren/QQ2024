@@ -1,5 +1,17 @@
 from collections import namedtuple
 from enum import IntEnum
+from typing import Protocol
+import pandas as pd
+
+
+class IModel(Protocol):
+    def place_bets(
+        self,
+        summary: pd.DataFrame,
+        opps: pd.DataFrame,
+        inc: tuple[pd.DataFrame, pd.DataFrame],
+    ) -> pd.DataFrame:
+        raise NotImplementedError
 
 
 type TeamID = int
