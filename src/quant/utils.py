@@ -1,7 +1,5 @@
-import time
 import numpy as np
 import matplotlib.pyplot as plt
-from sklearn import metrics
 import tensorflow as tf
 from tensorflow import keras
 from keras.callbacks import Callback
@@ -41,17 +39,18 @@ class PlotLosses(Callback):
         self.fig.tight_layout()
 
     def on_epoch_end(self, epoch, logs={}):
+        loss = logs.get("loss")
+        val_loss = logs.get("val_loss")
         self.x.append(self.i)
-        self.losses.append(logs.get("loss"))
-        self.val_losses.append(logs.get("val_loss"))
+        self.losses.append(loss)
+        self.val_losses.append(val_loss)
         self.i += 1
 
-        start = time.time()
         accuracy_train = accuracy(self.y_train, self.model.predict(self.x_train))
         accuracy_val = accuracy(self.y_val, self.model.predict(self.x_val))
-        elapsed = time.time() - start
         print(
-            f"Accuracy train: {accuracy_train:.4f} val: {accuracy_val:.4f} in {elapsed:.2f}s\n"
+            f"Accuracy train: {accuracy_train:.4f} val: {accuracy_val:.4f}\n"
+            f"MSE loss train: {loss:.4f} val: {val_loss:.4f}"
         )
         self.accuracy_train.append(accuracy_train)
         self.accuracy_val.append(accuracy_val)
