@@ -17,5 +17,4 @@ dependencies = [
   "statsmodels",
   "scikit-learn",
   "openpyxl",
-  "xgboost-cpu",
 ]

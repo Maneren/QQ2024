@@ -322,50 +322,9 @@ class Ai:
         ):
             print(f"{name} ({data_name}): {f(y, predictions)}")
 
-        # all_epoch_activations = np.array(activation_logger.epoch_activations)
-        #
-        # print(np.shape(all_epoch_activations))
-        # transposed_activations = np.transpose(all_epoch_activations, (2, 0, 1))
-        #
-        # # Reshape to neurons x (samples * epochs)
-        # flattened_activations = transposed_activations.reshape(
-        #     transposed_activations.shape[0], -1
-        # )
-        #
-        # print(np.shape(flattened_activations))
-        # correlation_matrix = np.corrcoef(
-        #     flattened_activations
-        # )  # Transpose to get neurons x epochs in case of averaging
-        #
-        # # Visualize the correlation matrix
-        # plt.figure(figsize=(20, 16))
-        # sns.heatmap(correlation_matrix, annot=True, cmap="coolwarm", fmt=".2f")
-        # plt.title("Neuron Activation Correlation")
-        # plt.xlabel("Neurons")
-        # plt.ylabel("Neurons")
-        # plt.show()
-        #
-        # transposed_activations = np.transpose(all_epoch_activations[-1])
-        # np.shape(transposed_activations)
-        #
-        # plt.figure(figsize=(12, 8))
-        # sns.heatmap(
-        #     transposed_activations,
-        #     cmap="viridis",
-        #     annot=False,
-        #     xticklabels=False,
-        #     yticklabels=False,
-        # )
-        # plt.title("Neuron Activations for All Samples (Last Epoch)")
-        # plt.xlabel("Samples")
-        # plt.ylabel("Neurons")
-        # plt.show()
-
         ma_sensitivity_over_epochs = np.array(
             feature_sensitivity_logger.mean_absolute_sensitivity_over_epochs
         )
-
-        print(ma_sensitivity_over_epochs.shape)
 
         print(
             *sorted(
@@ -388,19 +347,11 @@ class Ai:
         ):
             plot.plot(epochs, values, label=feature_name)
 
-        def on_plot_hover(event):
-            # Iterating over each data member plotted
-            for curve in plot.get_lines():
-                # Searching which data member corresponds to current mouse position
-                if curve.contains(event)[0]:
-                    print(f"over {curve.get_label()}")
-
         plt.title("Mean absolute Feature Sensitivities Over Epochs")
         plt.xlabel("Epoch")
         plt.ylabel("Mean Absolute Sensitivity")
-        plt.legend(loc="upper right", bbox_to_anchor=(1.25, 1))
+        plt.legend(loc="upper right", bbox_to_anchor=(1, 1))
         plt.grid(True)
-        # fig.canvas.mpl_connect("motion_notify_event", on_plot_hover)
         plt.show()
 
     def initialize_model(
@@ -417,7 +368,6 @@ class Ai:
         x = MaxPooling1D(8, strides=2)(x)
         x = Flatten()(x)
 
-        # Mix in the scalar features
         combined = Concatenate()([x, scalar_input])
 
         dense = Dense(16, activation="tanh", kernel_regularizer=L2(0.005))(combined)
