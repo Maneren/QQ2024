@@ -295,7 +295,7 @@ class Ai:
             shuffle=True,
             epochs=1000,
             batch_size=500,
-            verbose=1,
+            verbose=0,
             validation_data=(x_val, y_val),
             callbacks=[
                 plot_losses,
@@ -358,15 +358,17 @@ class Ai:
         main_input = Input(shape=nd_shape[1:], name="main_input")
         scalar_input = Input(shape=scalar_shape[1:], name="scalar_input")
 
-        x = Conv1D(
-            16, 8, activation="tanh", padding="same", kernel_regularizer=L2(0.01)
-        )(main_input)
-        x = MaxPooling1D(8, strides=2)(x)
+        x = Conv1D(16, 16, activation="tanh", padding="same", kernel_regularizer=L2())(
+            main_input
+        )
+        x = MaxPooling1D(8, strides=1)(x)
+        x = Conv1D(8, 8, activation="tanh", padding="same", kernel_regularizer=L2())(x)
+        x = MaxPooling1D(4, strides=1)(x)
         x = Flatten()(x)
 
         combined = Concatenate()([x, scalar_input])
 
-        dense = Dense(16, activation="tanh", kernel_regularizer=L2(0.005))(combined)
+        dense = Dense(16, activation="tanh", kernel_regularizer=L2())(combined)
         output = Dense(1, name="output", use_bias=True)(dense)
 
         self.model = keras.Model(inputs=[main_input, scalar_input], outputs=output)
