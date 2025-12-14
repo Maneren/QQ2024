@@ -9,7 +9,7 @@ dependencies = [
   "numpy",
   "scipy",
   "matplotlib",
-  "tensorflow-cpu",
+  # "tensorflow-cpu",
   "types-tensorflow",
   "pandas",
   "pandas-stubs",
