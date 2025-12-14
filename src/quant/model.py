@@ -100,8 +100,6 @@ class Model(IModel):
         "AE",
         "HEBL",
         "AEBL",
-        "N",
-        "POFF",
     )
     MATCH_SCALAR_COLUMNS: tuple[str, ...] = (
         *SCALAR_COLUMNS,
@@ -130,8 +128,6 @@ class Model(IModel):
                     away_elo,
                     home_elo_by_location,
                     away_elo_by_location,
-                    match.N,
-                    match.POFF,
                 ],
                 scalar_parameters,
             ],
