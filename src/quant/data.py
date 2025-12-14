@@ -1,41 +1,57 @@
-from itertools import product, repeat, starmap
+from itertools import product, starmap
 from operator import add
-from itertools import chain
+from typing import Iterable
+
+from numpy.typing import NDArray
 
 
 from quant.queue import RollingQueue
 from quant.types import Match, Opp, Team, TeamID
 import pandas as pd
+import numpy as np
+
+
+def prefix_columns(
+    prefixes: Iterable[str], columns: tuple[str, ...]
+) -> tuple[str, ...]:
+    return tuple(starmap(add, product(prefixes, columns)))
 
 
 class TeamData:
     """Hold data of one team, both as home and away."""
 
-    N_SHORT = 5
-    N_LONG = 30
+    N = 30
 
-    BASE_COLUMNS: tuple[str, ...] = (
+    TEAM_VECTOR_COLUMNS: tuple[str, ...] = (
         "WR",
         "WRH",
         "WRA",
         "PSA",
         "PSAH",
         "PSAA",
+        "FGM",
+        "FGA",
+        "FG3M",
+        "FG3A",
+        "FTM",
+        "FTA",
+        "ORB",
+        "DRB",
+        "RB",
+        "AST",
+        "STL",
+        "BLK",
+        "TOV",
+        "PF",
     )
 
-    TEAM_COLUMNS: tuple[str, ...] = (
-        "DSLM",
-        *starmap(add, product(BASE_COLUMNS, ["_S", "_L"])),
+    TEAM_SCALAR_COLUMNS: tuple[str, ...] = ("DSLM",)
+
+    MATCH_VECTOR_COLUMNS: tuple[str, ...] = prefix_columns(
+        ["H_", "A_"], TEAM_VECTOR_COLUMNS
     )
 
-    # HACK: Python's scopes are weird, so we have to work around them with the
-    # extra repeat iterator
-    COLUMNS: tuple[tuple[str, ...], ...] = tuple(
-        tuple(starmap(add, product(team_prefix, tc)))
-        for team_prefix, tc in zip([["H_"], ["A_"]], repeat(TEAM_COLUMNS))
-    )
-
-    MATCH_COLUMNS: tuple[str, ...] = tuple(chain.from_iterable(COLUMNS))
+    MATCH_SCALAR_COLUMNS = prefix_columns(["H_", "A_"], TEAM_SCALAR_COLUMNS)
 
     def __init__(
         self,
@@ -43,23 +59,37 @@ class TeamData:
         """Init datastucture."""
         self.date_last_match: pd.Timestamp = pd.to_datetime("1975-11-07")
 
-        # short averages
-        self.win_rate_S = RollingQueue(TeamData.N_SHORT)
-        self.win_rate_home_S = RollingQueue(TeamData.N_SHORT)
-        self.win_rate_away_S = RollingQueue(TeamData.N_SHORT)
+        self.win_rate = RollingQueue(TeamData.N)
+        self.win_rate_home = RollingQueue(TeamData.N)
+        self.win_rate_away = RollingQueue(TeamData.N)
 
-        self.points_scored_average_S = RollingQueue(TeamData.N_SHORT)
-        self.points_scored_average_home_S = RollingQueue(TeamData.N_SHORT)
-        self.points_scored_average_away_S = RollingQueue(TeamData.N_SHORT)
+        self.points_scored_average = RollingQueue(TeamData.N)
+        self.points_scored_average_home = RollingQueue(TeamData.N)
+        self.points_scored_average_away = RollingQueue(TeamData.N)
 
-        # long averages
-        self.win_rate_L = RollingQueue(TeamData.N_LONG)
-        self.win_rate_home_L = RollingQueue(TeamData.N_LONG)
-        self.win_rate_away_L = RollingQueue(TeamData.N_LONG)
+        # Field goals made/attempted
+        self.fgm_average = RollingQueue(TeamData.N)
+        self.fga_average = RollingQueue(TeamData.N)
 
-        self.points_scored_average_L = RollingQueue(TeamData.N_LONG)
-        self.points_scored_average_home_L = RollingQueue(TeamData.N_LONG)
-        self.points_scored_average_away_L = RollingQueue(TeamData.N_LONG)
+        # 3-point field goals made/attempted
+        self.fg3m_average = RollingQueue(TeamData.N)
+        self.fg3a_average = RollingQueue(TeamData.N)
+
+        # Free throws made/attempted
+        self.ftm_average = RollingQueue(TeamData.N)
+        self.fta_average = RollingQueue(TeamData.N)
+
+        # Rebounds
+        self.orb_average = RollingQueue(TeamData.N)
+        self.drb_average = RollingQueue(TeamData.N)
+        self.rb_average = RollingQueue(TeamData.N)
+
+        # Other stats
+        self.ast_average = RollingQueue(TeamData.N)
+        self.stl_average = RollingQueue(TeamData.N)
+        self.blk_average = RollingQueue(TeamData.N)
+        self.tov_average = RollingQueue(TeamData.N)
+        self.pf_average = RollingQueue(TeamData.N)
 
     def _get_days_since_last_match(self, today: pd.Timestamp) -> int:
         """Return number of days scince last mach."""
@@ -72,42 +102,64 @@ class TeamData:
         win = match.H if played_as == Team.Home else match.A
         points = match.HSC if played_as == Team.Home else match.ASC
 
-        self.win_rate_S.put(win)
-        self.win_rate_L.put(win)
-        self.points_scored_average_S.put(points)
-        self.points_scored_average_L.put(points)
+        self.win_rate.put(win)
+        self.points_scored_average.put(points)
 
         if played_as == Team.Home:
-            self.win_rate_home_S.put(win)
-            self.win_rate_home_L.put(win)
-            self.points_scored_average_home_S.put(points)
-            self.points_scored_average_home_L.put(points)
+            self.win_rate_home.put(win)
+            self.points_scored_average_home.put(points)
         else:
-            self.win_rate_away_S.put(win)
-            self.win_rate_away_L.put(win)
-            self.points_scored_average_away_S.put(points)
-            self.points_scored_average_away_L.put(points)
+            self.win_rate_away.put(win)
+            self.points_scored_average_away.put(points)
 
-    def get_data_series(self, date: pd.Timestamp, team: Team) -> pd.Series:
+        # Update additional stats
+        self.fgm_average.put(match.HFGM if played_as == Team.Home else match.AFGM)
+        self.fga_average.put(match.HFGA if played_as == Team.Home else match.AFGA)
+        self.fg3m_average.put(match.HFG3M if played_as == Team.Home else match.AFG3M)
+        self.fg3a_average.put(match.HFG3A if played_as == Team.Home else match.AFG3A)
+        self.ftm_average.put(match.HFTM if played_as == Team.Home else match.AFTM)
+        self.fta_average.put(match.HFTA if played_as == Team.Home else match.AFTA)
+        self.orb_average.put(match.HORB if played_as == Team.Home else match.AORB)
+        self.drb_average.put(match.HDRB if played_as == Team.Home else match.ADRB)
+        self.rb_average.put(match.HRB if played_as == Team.Home else match.ARB)
+        self.ast_average.put(match.HAST if played_as == Team.Home else match.AAST)
+        self.stl_average.put(match.HSTL if played_as == Team.Home else match.ASTL)
+        self.blk_average.put(match.HBLK if played_as == Team.Home else match.ABLK)
+        self.tov_average.put(match.HTOV if played_as == Team.Home else match.ATOV)
+        self.pf_average.put(match.HPF if played_as == Team.Home else match.APF)
+
+    def get_data_series(
+        self, date: pd.Timestamp
+    ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
         """Return complete data vector for given team."""
-        return pd.Series(
+        vector_parameters = np.stack(
             [
-                self._get_days_since_last_match(date),
-                self.win_rate_S.average(),
-                self.win_rate_L.average(),
-                self.win_rate_home_S.average(),
-                self.win_rate_home_L.average(),
-                self.win_rate_away_S.average(),
-                self.win_rate_away_L.average(),
-                self.points_scored_average_S.average(),
-                self.points_scored_average_L.average(),
-                self.points_scored_average_home_S.average(),
-                self.points_scored_average_away_L.average(),
-                self.points_scored_average_home_L.average(),
-                self.points_scored_average_away_S.average(),
+                self.win_rate.values,
+                self.win_rate_home.values,
+                self.win_rate_away.values,
+                self.points_scored_average.values,
+                self.points_scored_average_home.values,
+                self.points_scored_average_away.values,
+                self.fgm_average.values,
+                self.fga_average.values,
+                self.fg3m_average.values,
+                self.fg3a_average.values,
+                self.ftm_average.values,
+                self.fta_average.values,
+                self.orb_average.values,
+                self.drb_average.values,
+                self.rb_average.values,
+                self.ast_average.values,
+                self.stl_average.values,
+                self.blk_average.values,
+                self.tov_average.values,
+                self.pf_average.values,
             ],
-            index=pd.Index(self.COLUMNS[team]),
         )
+        scalar_parameters = np.array(
+            [self._get_days_since_last_match(date)], dtype=np.float64
+        )
+        return vector_parameters, scalar_parameters
 
 
 class Data:
@@ -126,16 +178,29 @@ class Data:
         """Return the TeamData for given team."""
         return self.teams[team_id]
 
-    def get_match_parameters(self, match: Opp) -> pd.Series:
+    def get_match_parameters(
+        self, match: Opp
+    ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
         """Get array for match."""
         home_team = self.teams.setdefault(match.HID, TeamData())
         away_team = self.teams.setdefault(match.AID, TeamData())
 
-        date: pd.Timestamp = pd.to_datetime(match.Date)
+        date = pd.to_datetime(match.Date)
 
-        return pd.concat(
+        vector_home, scalar_home = home_team.get_data_series(date)
+        vector_away, scalar_away = away_team.get_data_series(date)
+
+        vector_parameters = np.concat(
             [
-                home_team.get_data_series(date, Team.Home),
-                away_team.get_data_series(date, Team.Away),
-            ]
+                vector_home,
+                vector_away,
+            ],
+            dtype=np.float64,
         )
+
+        scalar_parameters = np.concat(
+            [scalar_home, scalar_away],
+            dtype=np.float64,
+        )
+
+        return vector_parameters, scalar_parameters
