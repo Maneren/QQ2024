@@ -21,12 +21,6 @@ class TeamData:
         "PSA",
         "PSAH",
         "PSAA",
-        # "PLTA",
-        # "PLTAH",
-        # "PLTAA",
-        # "PD",
-        # "PDH",
-        # "PDA",
     )
 
     TEAM_COLUMNS: tuple[str, ...] = (
@@ -58,14 +52,6 @@ class TeamData:
         self.points_scored_average_home_S = RollingQueue(TeamData.N_SHORT)
         self.points_scored_average_away_S = RollingQueue(TeamData.N_SHORT)
 
-        self.points_lost_to_x_average_S = RollingQueue(TeamData.N_SHORT)
-        self.points_lost_to_x_average_home_S = RollingQueue(TeamData.N_SHORT)
-        self.points_lost_to_x_average_away_S = RollingQueue(TeamData.N_SHORT)
-
-        self.points_diference_average_S = RollingQueue(TeamData.N_SHORT)
-        self.points_diference_average_home_S = RollingQueue(TeamData.N_SHORT)
-        self.points_diference_average_away_S = RollingQueue(TeamData.N_SHORT)
-
         # long averages
         self.win_rate_L = RollingQueue(TeamData.N_LONG)
         self.win_rate_home_L = RollingQueue(TeamData.N_LONG)
@@ -74,14 +60,6 @@ class TeamData:
         self.points_scored_average_L = RollingQueue(TeamData.N_LONG)
         self.points_scored_average_home_L = RollingQueue(TeamData.N_LONG)
         self.points_scored_average_away_L = RollingQueue(TeamData.N_LONG)
-
-        self.points_lost_to_x_average_L = RollingQueue(TeamData.N_LONG)
-        self.points_lost_to_x_average_home_L = RollingQueue(TeamData.N_LONG)
-        self.points_lost_to_x_average_away_L = RollingQueue(TeamData.N_LONG)
-
-        self.points_diference_average_L = RollingQueue(TeamData.N_LONG)
-        self.points_diference_average_home_L = RollingQueue(TeamData.N_LONG)
-        self.points_diference_average_away_L = RollingQueue(TeamData.N_LONG)
 
     def _get_days_since_last_match(self, today: pd.Timestamp) -> int:
         """Return number of days scince last mach."""
@@ -93,36 +71,22 @@ class TeamData:
 
         win = match.H if played_as == Team.Home else match.A
         points = match.HSC if played_as == Team.Home else match.ASC
-        points_lost_to = match.ASC if played_as == Team.Home else match.HSC
-        point_diference = points - points_lost_to
 
         self.win_rate_S.put(win)
         self.win_rate_L.put(win)
         self.points_scored_average_S.put(points)
         self.points_scored_average_L.put(points)
-        self.points_lost_to_x_average_S.put(points_lost_to)
-        self.points_lost_to_x_average_L.put(points_lost_to)
-        self.points_diference_average_S.put(point_diference)
-        self.points_diference_average_L.put(point_diference)
 
         if played_as == Team.Home:
             self.win_rate_home_S.put(win)
             self.win_rate_home_L.put(win)
             self.points_scored_average_home_S.put(points)
             self.points_scored_average_home_L.put(points)
-            self.points_lost_to_x_average_home_S.put(points_lost_to)
-            self.points_lost_to_x_average_home_L.put(points_lost_to)
-            self.points_diference_average_home_S.put(point_diference)
-            self.points_diference_average_home_L.put(point_diference)
         else:
             self.win_rate_away_S.put(win)
             self.win_rate_away_L.put(win)
             self.points_scored_average_away_S.put(points)
             self.points_scored_average_away_L.put(points)
-            self.points_lost_to_x_average_away_S.put(points_lost_to)
-            self.points_lost_to_x_average_away_L.put(points_lost_to)
-            self.points_diference_average_away_S.put(point_diference)
-            self.points_diference_average_away_L.put(point_diference)
 
     def get_data_series(self, date: pd.Timestamp, team: Team) -> pd.Series:
         """Return complete data vector for given team."""
@@ -141,18 +105,6 @@ class TeamData:
                 self.points_scored_average_away_L.average(),
                 self.points_scored_average_home_L.average(),
                 self.points_scored_average_away_S.average(),
-                # self.points_lost_to_x_average_S.average(),
-                # self.points_lost_to_x_average_L.average(),
-                # self.points_lost_to_x_average_home_S.average(),
-                # self.points_lost_to_x_average_home_L.average(),
-                # self.points_lost_to_x_average_away_S.average(),
-                # self.points_lost_to_x_average_away_L.average(),
-                # self.points_diference_average_S.average(),
-                # self.points_diference_average_L.average(),
-                # self.points_diference_average_home_S.average(),
-                # self.points_diference_average_home_L.average(),
-                # self.points_diference_average_away_S.average(),
-                # self.points_diference_average_away_L.average(),
             ],
             index=pd.Index(self.COLUMNS[team]),
         )

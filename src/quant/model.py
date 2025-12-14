@@ -83,6 +83,9 @@ class Model(IModel):
         "HomeElo",
         "AwayElo",
         "EloByLocation",
+        "EloDiff",
+        "Neutral",
+        "Playoff",
     )
     MATCH_PARAMETERS = len(TeamData.COLUMNS) + len(RANKING_COLUMNS)
     TRAINING_DATA_COLUMNS: tuple[str, ...] = (*RANKING_COLUMNS, *TeamData.MATCH_COLUMNS)
@@ -108,6 +111,9 @@ class Model(IModel):
                 home_elo,
                 away_elo,
                 elo_by_location_prediction,
+                home_elo - away_elo,
+                match.N,
+                match.POFF,
             ],
             index=self.RANKING_COLUMNS,
         )
@@ -115,33 +121,6 @@ class Model(IModel):
         data_parameters = self.data.get_match_parameters(match)
 
         return pd.concat([rankings, data_parameters], axis=0)
-
-    def train_ai(self, dataframe: pd.DataFrame) -> None:
-        """Train AI."""
-        training_data = []
-        outcomes_list = []
-
-        for match in (Match(*x) for x in dataframe.itertuples()):
-            match_parameters = self.get_match_parameters(match_to_opp(match))
-
-            training_data.append(match_parameters)
-            outcomes_list.append(match.H)
-
-            self.data.add_match(match)
-            self.elo.add_match(match)
-            self.elo_by_location.add_match(match)
-
-        training_dataframe = pd.DataFrame(
-            training_data, columns=pd.Index(self.TRAINING_DATA_COLUMNS)
-        )
-
-        outcomes = pd.Series(outcomes_list)
-
-        self.old_matches = training_dataframe
-        self.old_outcomes = outcomes
-
-        self.ai.train(training_dataframe, outcomes)
-        self.trained = True
 
     def train_ai_reg(self, dataframe: pd.DataFrame) -> None:
         """Train AI."""
@@ -210,6 +189,12 @@ def accuracy(y_true, y_pred):
     return np.mean(sign_true == sign_pred)
 
 
+def weighted_accuracy(y_true, y_pred):
+    sign_true = np.sign(y_true)
+    sign_pred = np.sign(y_pred)
+    return np.average(sign_true == sign_pred, weights=np.abs(y_pred))
+
+
 class PlotLosses(Callback):
     def __init__(self, x_train, y_train, x_val, y_val):
         super(PlotLosses, self).__init__()
@@ -242,7 +227,7 @@ class PlotLosses(Callback):
         accuracy_val = accuracy(self.y_val, self.model.predict(self.x_val))
         elapsed = time.time() - start
         print(
-            f"Accuracy train: {accuracy_train:.4f} val: {accuracy_val:.4f} in {elapsed:.2f}s"
+            f"Accuracy train: {accuracy_train:.4f} val: {accuracy_val:.4f} in {elapsed:.2f}s\n"
         )
         self.accuracy_train.append(accuracy_train)
         self.accuracy_val.append(accuracy_val)
@@ -317,10 +302,6 @@ class Ai:
     x_scaler: StandardScaler
     y_scaler: StandardScaler
 
-    EARLY_STOPPING = keras.callbacks.EarlyStopping(
-        monitor="val_loss", patience=50, restore_best_weights=True
-    )
-
     def __init__(self):
         """Create a new Model from a XGBClassifier."""
         self.initialized = False
@@ -365,6 +346,9 @@ class Ai:
         x_val = self.x_scaler.transform(x_val)
         y_val = self.y_scaler.transform(y_val.to_numpy().reshape(-1, 1))
 
+        early_stopping = keras.callbacks.EarlyStopping(
+            monitor="val_loss", patience=20, restore_best_weights=True
+        )
         plot_losses = PlotLosses(x_train, y_train, x_val, y_val)
         activation_logger = ActivationLogger(layer_name="dense", data=x_train)
         feature_sensitivity_logger = FeatureSensitivityLogger(data=x_train)
@@ -381,12 +365,12 @@ class Ai:
             y_train,
             shuffle=True,
             epochs=1000,
-            batch_size=500,
+            batch_size=200,
             verbose=1,
             validation_data=(x_val, y_val),
             callbacks=[
                 plot_losses,
-                self.EARLY_STOPPING,
+                early_stopping,
                 activation_logger,
                 feature_sensitivity_logger,
             ],
@@ -394,17 +378,21 @@ class Ai:
 
         print("MAE:", metrics.mean_absolute_error(y_val, self.model.predict(x_val)))
         print("MSE:", metrics.mean_squared_error(y_val, self.model.predict(x_val)))
-        outcomes_sign = np.sign(y_train)
-        predictions_sign = np.sign(self.model.predict(x_train))
         print(
             "Accuracy (train):",
-            np.sum(outcomes_sign == predictions_sign) / len(outcomes_sign),
+            accuracy(y_train, self.model.predict(x_train)),
         )
-        outcomes_sign = np.sign(y_val)
-        predictions_sign = np.sign(self.model.predict(x_val))
         print(
             "Accuracy (val):",
-            np.sum(outcomes_sign == predictions_sign) / len(outcomes_sign),
+            accuracy(y_val, self.model.predict(x_val)),
+        )
+        print(
+            "Accuracy weighted (train):",
+            weighted_accuracy(y_train, self.model.predict(x_train)),
+        )
+        print(
+            "Accuracy weighted (val):",
+            weighted_accuracy(y_val, self.model.predict(x_val)),
         )
 
         # all_epoch_activations = np.array(activation_logger.epoch_activations)
@@ -450,20 +438,41 @@ class Ai:
             feature_sensitivity_logger.mean_absolute_sensitivity_over_epochs
         )
 
+        print(
+            *sorted(
+                zip(
+                    training_dataframe.columns.tolist(),
+                    map(float, ma_sensitivity_over_epochs[-1]),
+                ),
+                key=lambda item: item[1],
+                reverse=True,
+            ),
+            sep="\n",
+        )
+
         # Plot sensitivities over epochs
-        plt.figure(figsize=(10, 6))
+        fig = plt.figure(figsize=(10, 6))
+        plot = fig.add_subplot()
         for i, feature_name in enumerate(training_dataframe.columns.tolist()):
-            plt.plot(
+            plot.plot(
                 range(1, len(ma_sensitivity_over_epochs) + 1),
                 ma_sensitivity_over_epochs[:, i],
                 label=feature_name,
             )
+
+        def on_plot_hover(event):
+            # Iterating over each data member plotted
+            for curve in plot.get_lines():
+                # Searching which data member corresponds to current mouse position
+                if curve.contains(event)[0]:
+                    print(f"over {curve.get_label()}")
 
         plt.title("Mean absolute Feature Sensitivities Over Epochs")
         plt.xlabel("Epoch")
         plt.ylabel("Mean Absolute Sensitivity")
         plt.legend(loc="upper right", bbox_to_anchor=(1.25, 1))
         plt.grid(True)
+        fig.canvas.mpl_connect("motion_notify_event", on_plot_hover)
         plt.show()
 
     def initialize_model(self) -> None:
@@ -472,12 +481,12 @@ class Ai:
 
         l2 = regularizers.L2(0.01)
 
-        self.model.add(InputLayer(shape=(29,)))
+        self.model.add(InputLayer(shape=(32,)))
         # self.model.add(
         #     Dense(10, activation="tanh", use_bias=True, kernel_regularizer=l2)
         # )
         self.model.add(
-            Dense(32, activation="tanh", use_bias=True, kernel_regularizer=l2)
+            Dense(64, activation="tanh", use_bias=True, kernel_regularizer=l2)
         )
         # self.model.add(Dropout(0.05))
         # self.model.add(
@@ -487,7 +496,7 @@ class Ai:
 
         # Adam
         optimizer = optimizers.Adam(
-            learning_rate=0.01, beta_1=0.9, beta_2=0.999, amsgrad=True
+            learning_rate=0.02, beta_1=0.9, beta_2=0.999, amsgrad=True
         )
 
         self.model.compile(loss="mean_squared_error", optimizer=optimizer)
