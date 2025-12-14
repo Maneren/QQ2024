@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from time import sleep
+import time
 from typing import TYPE_CHECKING, cast
 
 import keras
@@ -203,36 +204,64 @@ def calculate_elo_accuracy(data: list[list[int]]) -> float:
     return correct_predictions / total_games
 
 
+def accuracy(y_true, y_pred):
+    sign_true = np.sign(y_true)
+    sign_pred = np.sign(y_pred)
+    return np.mean(sign_true == sign_pred)
+
+
 class PlotLosses(Callback):
+    def __init__(self, x_train, y_train, x_val, y_val):
+        super(PlotLosses, self).__init__()
+        self.x_train = x_train
+        self.y_train = y_train
+        self.x_val = x_val
+        self.y_val = y_val
+
     def on_train_begin(self, logs={}):
         self.i = 0
         self.x = []
         self.losses = []
         self.val_losses = []
+        self.accuracy_train = []
+        self.accuracy_val = []
 
         # Enable interactive mode for live updates
         plt.ion()
         self.fig, self.ax = plt.subplots()
-
-        self.logs = []
+        self.fig.tight_layout()
 
     def on_epoch_end(self, epoch, logs={}):
-        self.logs.append(logs)
         self.x.append(self.i)
         self.losses.append(logs.get("loss"))
         self.val_losses.append(logs.get("val_loss"))
         self.i += 1
 
+        start = time.time()
+        accuracy_train = accuracy(self.y_train, self.model.predict(self.x_train))
+        accuracy_val = accuracy(self.y_val, self.model.predict(self.x_val))
+        elapsed = time.time() - start
+        print(
+            f"Accuracy train: {accuracy_train:.4f} val: {accuracy_val:.4f} in {elapsed:.2f}s"
+        )
+        self.accuracy_train.append(accuracy_train)
+        self.accuracy_val.append(accuracy_val)
+
         # Clear the current axes and redraw
         self.ax.clear()
+        self.ax.set_title("Training and Validation Loss/Accuracy")
+        self.ax.set_xlabel("Epoch")
+        self.ax.set_ylabel("Loss/Accuracy")
+
         self.ax.plot(self.x, self.losses, label="loss")
         self.ax.plot(self.x, self.val_losses, label="val_loss")
+
+        self.ax.plot(self.x, self.accuracy_train, label="accuracy_train")
+        self.ax.plot(self.x, self.accuracy_val, label="accuracy_val")
         self.ax.legend()
-        self.ax.set_xlabel("Epoch")
-        self.ax.set_ylabel("Loss")
-        self.ax.set_title("Training and Validation Loss")
 
         # Update the plot
+        plt.locator_params(axis="both", nbins=10)
         plt.draw()
         plt.pause(0.01)  # Small pause to allow plot to update
 
@@ -240,9 +269,6 @@ class PlotLosses(Callback):
         # Turn off interactive mode and show final plot
         plt.ioff()
         plt.show()
-
-
-plot_losses = PlotLosses()
 
 
 class ActivationLogger(Callback):
@@ -339,6 +365,7 @@ class Ai:
         x_val = self.x_scaler.transform(x_val)
         y_val = self.y_scaler.transform(y_val.to_numpy().reshape(-1, 1))
 
+        plot_losses = PlotLosses(x_train, y_train, x_val, y_val)
         activation_logger = ActivationLogger(layer_name="dense", data=x_train)
         feature_sensitivity_logger = FeatureSensitivityLogger(data=x_train)
 
@@ -446,16 +473,16 @@ class Ai:
         l2 = regularizers.L2(0.01)
 
         self.model.add(InputLayer(shape=(29,)))
-        # self.model.add(Dropout(0.05))
         # self.model.add(
         #     Dense(10, activation="tanh", use_bias=True, kernel_regularizer=l2)
         # )
+        self.model.add(
+            Dense(32, activation="tanh", use_bias=True, kernel_regularizer=l2)
+        )
+        # self.model.add(Dropout(0.05))
         # self.model.add(
         #     Dense(64, activation="tanh", use_bias=True, kernel_regularizer=l2)
         # )
-        self.model.add(
-            Dense(64, activation="tanh", use_bias=True, kernel_regularizer=l2)
-        )
         self.model.add(Dense(1, use_bias=True))
 
         # Adam
