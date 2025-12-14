@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 from time import sleep
 from typing import TYPE_CHECKING, cast
 
@@ -143,24 +144,35 @@ class Model(IModel):
 
     def train_ai_reg(self, dataframe: pd.DataFrame) -> None:
         """Train AI."""
-        training_data = []
-        outcomes_list = []
 
-        for match in (Match(*x) for x in dataframe.itertuples()):
-            match_parameters = self.get_match_parameters(match_to_opp(match))
+        if Path("data/training_dataframe.csv").is_file():
+            print("Loading training dataframe...")
+            training_dataframe = pd.read_csv("data/training_dataframe.csv", index_col=0)
+            outcomes = pd.read_csv("data/outcomes.csv").iloc[:, 1]
 
-            training_data.append(match_parameters)
-            outcomes_list.append(match.HSC - match.ASC)
+        else:
+            print("Creating training dataframe...")
+            training_data = []
+            outcomes_list = []
 
-            self.data.add_match(match)
-            self.elo.add_match(match)
-            self.elo_by_location.add_match(match)
+            for match in (Match(*x) for x in dataframe.itertuples()):
+                match_parameters = self.get_match_parameters(match_to_opp(match))
 
-        training_dataframe = pd.DataFrame(
-            training_data, columns=pd.Index(self.TRAINING_DATA_COLUMNS)
-        )
+                training_data.append(match_parameters)
+                outcomes_list.append(match.HSC - match.ASC)
 
-        outcomes = pd.Series(outcomes_list)
+                self.data.add_match(match)
+                self.elo.add_match(match)
+                self.elo_by_location.add_match(match)
+
+            training_dataframe = pd.DataFrame(
+                training_data, columns=pd.Index(self.TRAINING_DATA_COLUMNS)
+            )
+
+            outcomes = pd.Series(outcomes_list, name="Outcome")
+
+            training_dataframe.to_csv("data/training_dataframe.csv")
+            outcomes.to_csv("data/outcomes.csv")
 
         self.old_matches = training_dataframe
         self.old_outcomes = outcomes
@@ -301,6 +313,8 @@ class Ai:
         print("Training model...")
         print("Data shape:", training_dataframe.shape)
         print(training_dataframe.describe())
+        print("Outcomes shape:", outcomes.shape)
+        print(outcomes.describe())
 
         x_train, x_val, y_train, y_val = model_selection.train_test_split(
             training_dataframe,
@@ -352,6 +366,19 @@ class Ai:
         )
 
         print("MAE:", metrics.mean_absolute_error(y_val, self.model.predict(x_val)))
+        print("MSE:", metrics.mean_squared_error(y_val, self.model.predict(x_val)))
+        outcomes_sign = np.sign(y_train)
+        predictions_sign = np.sign(self.model.predict(x_train))
+        print(
+            "Accuracy (train):",
+            np.sum(outcomes_sign == predictions_sign) / len(outcomes_sign),
+        )
+        outcomes_sign = np.sign(y_val)
+        predictions_sign = np.sign(self.model.predict(x_val))
+        print(
+            "Accuracy (val):",
+            np.sum(outcomes_sign == predictions_sign) / len(outcomes_sign),
+        )
 
         # all_epoch_activations = np.array(activation_logger.epoch_activations)
         #
