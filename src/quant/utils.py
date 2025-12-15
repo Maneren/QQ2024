@@ -37,6 +37,7 @@ class PlotLosses(Callback):
         plt.ion()
         self.fig, self.ax = plt.subplots()
         self.fig.tight_layout()
+        self.ax2 = self.ax.twinx()
 
     def on_epoch_end(self, epoch, logs={}):
         loss = logs.get("loss")
@@ -49,6 +50,7 @@ class PlotLosses(Callback):
         accuracy_train = accuracy(self.y_train, self.model.predict(self.x_train))
         accuracy_val = accuracy(self.y_val, self.model.predict(self.x_val))
         print(
+            f"Epoch {self.i}: \n"
             f"Accuracy train: {accuracy_train:.4f} val: {accuracy_val:.4f}\n"
             f"MSE loss train: {loss:.4f} val: {val_loss:.4f}"
         )
@@ -59,14 +61,17 @@ class PlotLosses(Callback):
         self.ax.clear()
         self.ax.set_title("Training and Validation Loss/Accuracy")
         self.ax.set_xlabel("Epoch")
-        self.ax.set_ylabel("Loss/Accuracy")
+        self.ax.set_ylabel("Loss")
 
         self.ax.plot(self.x, self.losses, label="loss")
         self.ax.plot(self.x, self.val_losses, label="val_loss")
+        self.ax.legend(loc="upper left")
 
-        self.ax.plot(self.x, self.accuracy_train, label="accuracy_train")
-        self.ax.plot(self.x, self.accuracy_val, label="accuracy_val")
-        self.ax.legend()
+        self.ax2.clear()
+        self.ax2.set_ylabel("Accuracy")
+        self.ax2.plot(self.x, self.accuracy_train, label="accuracy_train", color="red")
+        self.ax2.plot(self.x, self.accuracy_val, label="accuracy_val", color="green")
+        self.ax2.legend(loc="upper right")
 
         # Update the plot
         plt.locator_params(axis="both", nbins=10)
