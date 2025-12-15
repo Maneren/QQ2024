@@ -354,13 +354,7 @@ class Ai:
         main_input = Input(shape=nd_shape[1:], name="main_input")
         scalar_input = Input(shape=scalar_shape[1:], name="scalar_input")
 
-        x = Conv1D(16, 16, activation="tanh", padding="same", kernel_regularizer=L2())(
-            main_input
-        )
-        x = MaxPooling1D(8, strides=1)(x)
-        x = Conv1D(8, 8, activation="tanh", padding="same", kernel_regularizer=L2())(x)
-        x = MaxPooling1D(4, strides=1)(x)
-        x = Flatten()(x)
+        x = Flatten()(main_input)
 
         combined = Concatenate()([x, scalar_input])
 
