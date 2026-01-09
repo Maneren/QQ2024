@@ -13,9 +13,11 @@ from keras import optimizers
 from keras.callbacks import EarlyStopping
 from keras.layers import (
     Concatenate,
+    Conv1D,
     Dense,
     Flatten,
     Input,
+    MaxPooling1D,
 )
 from keras.regularizers import L2
 from sklearn import metrics, model_selection
@@ -200,7 +202,13 @@ class Model:
         main_input = Input(shape=nd_shape[1:], name="main_input")
         scalar_input = Input(shape=scalar_shape[1:], name="scalar_input")
 
-        x = Flatten()(main_input)
+        x = Conv1D(16, 16, activation="tanh", padding="same", kernel_regularizer=L2())(
+            main_input
+        )
+        x = MaxPooling1D(8, strides=1)(x)
+        x = Conv1D(8, 8, activation="tanh", padding="same", kernel_regularizer=L2())(x)
+        x = MaxPooling1D(4, strides=1)(x)
+        x = Flatten()(x)
 
         combined = Concatenate()([x, scalar_input])
 
