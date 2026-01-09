@@ -13,20 +13,15 @@ from keras import optimizers
 from keras.callbacks import EarlyStopping
 from keras.layers import (
     Concatenate,
-    Conv1D,
     Dense,
     Flatten,
     Input,
-    MaxPooling1D,
 )
 from keras.regularizers import L2
-from numpy.typing import NDArray
 from sklearn import metrics, model_selection
 from sklearn.preprocessing import StandardScaler
 
-from quant.data import Data, TeamData
-from quant.ranking import Elo, EloByLocation
-from quant.types import IModel, Match, Opp, Team, match_to_opp
+from quant.data import TeamData
 from quant.utils import (
     ActivationLogger,
     FeatureSensitivityLogger,
@@ -38,172 +33,24 @@ from quant.utils import (
 if TYPE_CHECKING:
     import os
 
-import warnings
-
-warnings.filterwarnings("ignore", category=RuntimeWarning)
-
-
-def month_diff(a: pd.Timestamp, b: pd.Timestamp) -> int:
-    return 12 * (a.year - b.year) + (a.month - b.month)
-
-
-class Model(IModel):
-    """Main class."""
-
-    TRAIN_SIZE: int = 2000
-    FIRST_TRAIN_MOD: int = 10
-
-    def __init__(self) -> None:
-        """Init classes."""
-        self.seen_matches = set()
-        self.elo = Elo()
-        self.elo_by_location = EloByLocation()
-        # self.player = Player()
-        self.ai = Ai()
-        self.trained = False
-        self.data = Data()
-        self.season_number: int = 0
-        # self.budget: int = 0
-        self.old_matches = np.ndarray((0, 0, 0))
-        self.old_outcomes = np.ndarray((0,))
-        # self.last_retrain: pd.Timestamp = pd.Timestamp(0)
-
-    def update_models(self, games_increment: pd.DataFrame) -> None:
-        """Update models."""
-        for match in (Match(*row) for row in games_increment.itertuples()):
-            self.elo.add_match(match)
-            self.elo_by_location.add_match(match)
-            self.data.add_match(match)
-
-    def place_bets(
-        self,
-        _summ: pd.DataFrame,
-        _opps: pd.DataFrame,
-        inc: tuple[pd.DataFrame, pd.DataFrame],
-    ) -> pd.DataFrame:
-        """Run main function."""
-        games_increment, _players_increment = inc
-
-        if not self.trained:
-            self.train_ai_reg(games_increment)
-
-        raise StopIteration
-
-        return pd.DataFrame()
-
-    SCALAR_COLUMNS: tuple[str, ...] = (
-        "HE",
-        "AE",
-        "HEBL",
-        "AEBL",
-    )
-    MATCH_SCALAR_COLUMNS: tuple[str, ...] = (
-        *SCALAR_COLUMNS,
-        *TeamData.MATCH_SCALAR_COLUMNS,
-    )
-    TRAINING_DATA_COLUMNS: tuple[str, ...] = (
-        *MATCH_SCALAR_COLUMNS,
-        *TeamData.MATCH_VECTOR_COLUMNS,
-    )
-
-    def get_match_parameters(
-        self, match: Opp
-    ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
-        """Get parameters for given match."""
-        home_elo = self.elo.team_rating(match.HID)
-        away_elo = self.elo.team_rating(match.AID)
-        home_elo_by_location = self.elo_by_location.team_rating(match.HID, Team.Home)
-        away_elo_by_location = self.elo_by_location.team_rating(match.AID, Team.Away)
-
-        vector_parameters, scalar_parameters = self.data.get_match_parameters(match)
-
-        scalar_parameters = np.concatenate(
-            [
-                [
-                    home_elo,
-                    away_elo,
-                    home_elo_by_location,
-                    away_elo_by_location,
-                ],
-                scalar_parameters,
-            ],
-            axis=None,
-            dtype=np.float64,
-        )
-
-        return vector_parameters, scalar_parameters
-
-    def train_ai_reg(self, dataframe: pd.DataFrame) -> None:
-        """Train AI."""
-
-        if Path("data/training.npz").is_file():
-            print("Loading training dataframe...")
-
-            loaded = np.load("data/training.npz")
-            nd_data = loaded["nd_data"]
-            scalar_data = loaded["scalar_data"]
-            outcomes = loaded["outcomes"]
-
-        else:
-            print("Creating training dataframe...")
-            samples = len(dataframe)
-            nd_data = np.zeros(
-                (samples, len(TeamData.MATCH_VECTOR_COLUMNS), TeamData.N)
-            )
-            scalar_data = np.zeros((samples, len(self.MATCH_SCALAR_COLUMNS)))
-            outcomes = np.zeros((samples,))
-
-            for i, match in enumerate(starmap(Match, dataframe.itertuples())):
-                nd, scalar = self.get_match_parameters(match_to_opp(match))
-
-                if i % 1000 == 0:
-                    print(f"Processed {i}/{len(dataframe)} matches...")
-
-                nd_data[i] = nd
-                scalar_data[i] = scalar
-                outcomes[i] = np.float64(match.HSC - match.ASC)
-
-                self.data.add_match(match)
-                self.elo.add_match(match)
-                self.elo_by_location.add_match(match)
-
-            np.savez(
-                "data/training.npz",
-                nd_data=nd_data,
-                scalar_data=scalar_data,
-                outcomes=outcomes,
-            )
-
-        self.old_matches = nd_data
-        self.old_outcomes = outcomes
-
-        self.ai.train_reg(nd_data, scalar_data, outcomes)
-        self.trained = True
+SCALAR_COLUMNS: tuple[str, ...] = (
+    "HE",
+    "AE",
+    "HEBL",
+    "AEBL",
+)
+MATCH_SCALAR_COLUMNS: tuple[str, ...] = (
+    *SCALAR_COLUMNS,
+    *TeamData.MATCH_SCALAR_COLUMNS,
+)
+MATCH_VECTOR_COLUMNS = TeamData.MATCH_VECTOR_COLUMNS
+TRAINING_DATA_COLUMNS: tuple[str, ...] = (
+    *MATCH_SCALAR_COLUMNS,
+    *TeamData.MATCH_VECTOR_COLUMNS,
+)
 
 
-def calculate_elo_accuracy(data: list[list[int]]) -> float:
-    """Calculate the accuracy of ELO predictions."""
-    correct_predictions = 0
-    total_games = len(data)
-    games = np.array(data)[:, :-1]
-    outcomes = np.array(data)[:, -1].clip(0, 1).round(decimals=0)
-    for i in range(len(data)):
-        elo_home = games[i][0]
-        elo_away = games[i][1]
-        outcome = outcomes[i]
-
-        # Predict home win if home ELO is greater than away ELO
-        predicted_outcome = 1 if elo_home > elo_away else 0
-
-        # Compare predicted outcome with actual outcome
-        if predicted_outcome == outcome:
-            correct_predictions += 1
-
-    # Calculate accuracy as a percentage
-    return correct_predictions / total_games
-
-
-class Ai:
+class Model:
     """Class for training and predicting."""
 
     model: keras.Model
@@ -212,7 +59,6 @@ class Ai:
     y_scaler: StandardScaler
 
     def __init__(self):
-        """Create a new Model from a XGBClassifier."""
         self.initialized = False
         self.x_nd_scaler = StandardScaler()
         self.x_scalar_scaler = StandardScaler()
@@ -322,7 +168,7 @@ class Ai:
         print(
             *sorted(
                 zip(
-                    Model.TRAINING_DATA_COLUMNS,
+                    TRAINING_DATA_COLUMNS,
                     map(float, ma_sensitivity_over_epochs[-1]),
                 ),
                 key=lambda item: item[1],
@@ -336,7 +182,7 @@ class Ai:
         plot = fig.add_subplot()
         epochs = list(range(1, len(ma_sensitivity_over_epochs) + 1))
         for feature_name, values in zip(
-            Model.TRAINING_DATA_COLUMNS, ma_sensitivity_over_epochs.T
+            TRAINING_DATA_COLUMNS, ma_sensitivity_over_epochs.T
         ):
             plot.plot(epochs, values, label=feature_name)
 

@@ -116,6 +116,10 @@ class Elo(RankingModel):
         """Return Elo rating of a team."""
         return self.teams.setdefault(team_id, TeamElo()).rating
 
+    def match_rating(self, home_id: int, away_id: int) -> tuple[float, float]:
+        """Return Elo rating of teams in a match."""
+        return self.team_rating(home_id), self.team_rating(away_id)
+
     def reset(self) -> None:
         """Reset the model."""
         self.teams = {}
@@ -160,6 +164,13 @@ class EloByLocation(RankingModel):
         """Return Elo rating of a team."""
         source = self.teams_home if team == Team.Home else self.teams_away
         return source.setdefault(team_id, TeamElo()).rating
+
+    def match_rating(self, home_id: int, away_id: int) -> tuple[float, float]:
+        """Return Elo rating of teams in a match."""
+        return (
+            self.team_rating(home_id, Team.Home),
+            self.team_rating(away_id, Team.Away),
+        )
 
     def reset(self) -> None:
         """Reset the model."""
