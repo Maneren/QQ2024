@@ -1,5 +1,4 @@
 from itertools import starmap
-from pathlib import Path
 import pandas as pd
 import numpy as np
 from quant.data import Data, TeamData
@@ -13,16 +12,14 @@ from quant.files import (
 from quant.model import MATCH_SCALAR_COLUMNS, MATCH_VECTOR_COLUMNS, Model
 from quant.ranking import Elo, EloByLocation
 from quant.types import Match, Opp, match_to_opp
+from tqdm import tqdm, trange
 
-
-# import warnings
-# warnings.filterwarnings("ignore", category=RuntimeWarning)
+from quant.utils import accuracy, weighted_accuracy
 
 
 def dataframe_to_tensors(dataframe: pd.DataFrame) -> DatasetTensors:
     """Convert dataframe to tensors."""
     np.set_printoptions(edgeitems=30, linewidth=240)
-    print("Creating training dataframe...")
     data = Data()
     elo = Elo()
     elo_by_location = EloByLocation()
@@ -52,9 +49,11 @@ def dataframe_to_tensors(dataframe: pd.DataFrame) -> DatasetTensors:
     scalar_data = np.zeros((samples, len(MATCH_SCALAR_COLUMNS)))
     outcomes = np.zeros((samples,))
 
-    print(dataframe.describe())
-
-    for i, match in enumerate(starmap(Match, dataframe.itertuples())):
+    for i, match in tqdm(
+        enumerate(starmap(Match, dataframe.itertuples())),
+        total=samples,
+        desc="Creating training dataframe",
+    ):
         nd, scalar = get_match_parameters(match_to_opp(match))
 
         nd_data[i] = nd
@@ -65,14 +64,6 @@ def dataframe_to_tensors(dataframe: pd.DataFrame) -> DatasetTensors:
         elo.add_match(match)
         elo_by_location.add_match(match)
 
-        if i % (len(dataframe) / 1000) == 0 or i == len(dataframe) - 1:
-            print(f"Processed {i + 1}/{len(dataframe)} matches...")
-            print(nd.shape)
-            print(nd)
-            print(scalar.shape)
-            print(scalar)
-            print(outcomes[i])
-
     return nd_data, scalar_data, outcomes
 
 
@@ -80,11 +71,14 @@ def get_dataset() -> DatasetTensors:
     """Train AI."""
 
     if (dataset := load_cached_dataset(DATASET_NAME)) is not None:
+        print("Loading cached dataset...")
         return dataset
 
+    print("Loading source data...")
     dataframe = load_source_data()
 
     dataset = dataframe_to_tensors(dataframe)
+    print("Saving dataset...")
     save_dataset(DATASET_NAME, *dataset)
 
     return dataset

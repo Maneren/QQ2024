@@ -102,10 +102,12 @@ class Model:
             self.initialize_model(x_nd_train.shape, scalar_data.shape)
             self.initialized = True
 
+            print("Normalizing data...")
             norm_x_nd_train: np.ndarray = self.x_nd_scaler.fit_transform(flat_x_train)
             x_scalar_train = self.x_scalar_scaler.fit_transform(x_scalar_train)
             y_train = self.y_scaler.fit_transform(y_train)
         else:
+            print("Normalizing data...")
             norm_x_nd_train: np.ndarray = self.x_nd_scaler.transform(flat_x_train)
             x_scalar_train = self.x_scalar_scaler.transform(x_scalar_train)
             y_train = self.y_scaler.transform(y_train)
@@ -199,6 +201,7 @@ class Model:
         self, nd_shape: tuple[int, ...], scalar_shape: tuple[int, ...]
     ) -> None:
         """Initialize model from path."""
+        print("Initializing model...")
         main_input = Input(shape=nd_shape[1:], name="main_input")
         scalar_input = Input(shape=scalar_shape[1:], name="scalar_input")
 
