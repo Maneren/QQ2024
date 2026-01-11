@@ -33,19 +33,19 @@ class PlotLosses(Callback):
         self.accuracy_train = []
         self.accuracy_val = []
 
-        # Enable interactive mode for live updates
-        plt.ion()
-        self.fig, self.ax = plt.subplots()
-        self.fig.tight_layout()
-        self.ax2 = self.ax.twinx()
+        # # Enable interactive mode for live updates
+        # plt.ion()
+        # self.fig, self.ax = plt.subplots()
+        # self.fig.tight_layout()
+        # self.ax2 = self.ax.twinx()
 
     def on_epoch_end(self, epoch, logs):
+        self.i += 1
         loss = logs.get("loss")
         val_loss = logs.get("val_loss")
         self.x.append(self.i)
         self.losses.append(loss)
         self.val_losses.append(val_loss)
-        self.i += 1
 
         accuracy_train = accuracy(self.y_train, self.model.predict(self.x_train))
         accuracy_val = accuracy(self.y_val, self.model.predict(self.x_val))
@@ -57,31 +57,33 @@ class PlotLosses(Callback):
         self.accuracy_train.append(accuracy_train)
         self.accuracy_val.append(accuracy_val)
 
-        # Clear the current axes and redraw
-        self.ax.clear()
-        self.ax.set_title("Training and Validation Loss/Accuracy")
-        self.ax.set_xlabel("Epoch")
-        self.ax.set_ylabel("Loss")
-
-        self.ax.plot(self.x, self.losses, label="loss")
-        self.ax.plot(self.x, self.val_losses, label="val_loss")
-        self.ax.legend(loc="upper left")
-
-        self.ax2.clear()
-        self.ax2.set_ylabel("Accuracy")
-        self.ax2.plot(self.x, self.accuracy_train, label="accuracy_train", color="red")
-        self.ax2.plot(self.x, self.accuracy_val, label="accuracy_val", color="green")
-        self.ax2.legend(loc="upper right")
-
-        # Update the plot
-        plt.locator_params(axis="both", nbins=10)
-        plt.draw()
-        plt.pause(0.01)  # Small pause to allow plot to update
+        # # Clear the current axes and redraw
+        # self.ax.clear()
+        # self.ax.set_title("Training and Validation Loss/Accuracy")
+        # self.ax.set_xlabel("Epoch")
+        # self.ax.set_ylabel("Loss")
+        #
+        # self.ax.set_yscale("log")
+        # self.ax.plot(self.x, self.losses, label="loss")
+        # self.ax.plot(self.x, self.val_losses, label="val_loss")
+        # self.ax.legend(loc="upper left")
+        #
+        # self.ax2.clear()
+        # self.ax2.set_ylabel("Accuracy")
+        # self.ax2.plot(self.x, self.accuracy_train, label="accuracy_train", color="red")
+        # self.ax2.plot(self.x, self.accuracy_val, label="accuracy_val", color="green")
+        # self.ax2.legend(loc="upper right")
+        #
+        # # Update the plot
+        # plt.locator_params(axis="both", nbins=10)
+        # plt.draw()
+        # plt.pause(0.01)  # Small pause to allow plot to update
 
     def on_train_end(self, logs={}):
         # Turn off interactive mode and show final plot
-        plt.ioff()
-        plt.show()
+        # plt.ioff()
+        # plt.show()
+        pass
 
 
 class ActivationLogger(Callback):

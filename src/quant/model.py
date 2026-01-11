@@ -1,13 +1,9 @@
 from __future__ import annotations
 
-from itertools import product, starmap
-from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
 import keras
-import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 import tensorflow as tf
 from keras import optimizers
 from keras.callbacks import EarlyStopping
@@ -26,7 +22,6 @@ from sklearn.preprocessing import StandardScaler
 
 from quant.data import TeamData
 from quant.utils import (
-    ActivationLogger,
     FeatureSensitivityLogger,
     PlotLosses,
     accuracy,
@@ -127,7 +122,6 @@ class Model:
             monitor="val_loss", patience=20, restore_best_weights=True
         )
         plot_losses = PlotLosses(x_train, y_train, x_val, y_val)
-        activation_logger = ActivationLogger(x_train)
         feature_sensitivity_logger = FeatureSensitivityLogger(
             x_nd_train, x_scalar_train
         )
@@ -147,7 +141,6 @@ class Model:
             callbacks=[
                 plot_losses,
                 early_stopping,
-                activation_logger,
                 feature_sensitivity_logger,
             ],
         )
@@ -181,22 +174,6 @@ class Model:
             ),
             sep="\n",
         )
-
-        # Plot sensitivities over epochs
-        fig = plt.figure(figsize=(10, 6))
-        plot = fig.add_subplot()
-        epochs = list(range(1, len(ma_sensitivity_over_epochs) + 1))
-        for feature_name, values in zip(
-            TRAINING_DATA_COLUMNS, ma_sensitivity_over_epochs.T
-        ):
-            plot.plot(epochs, values, label=feature_name)
-
-        plt.title("Mean Absolute Feature Sensitivity Over Epochs")
-        plt.xlabel("Epoch")
-        plt.ylabel("Mean Absolute Sensitivity")
-        plt.legend(loc="upper right", bbox_to_anchor=(1, 1))
-        plt.grid(True)
-        plt.show()
 
     def initialize_model(
         self, nd_shape: tuple[int, ...], scalar_shape: tuple[int, ...]
@@ -257,31 +234,6 @@ class Model:
 
         self.model.compile(loss="mean_squared_error", optimizer=optimizer)
 
-    def get_probabilities(self, dataframe: pd.DataFrame) -> pd.DataFrame:
-        """Get probabilities for match outcome [home_loss, home_win]."""
-        return self.model.predict_proba(dataframe.to_numpy())
-
-    def get_probabilities_reg(self, dataframe: pd.DataFrame) -> pd.DataFrame:
-        """Get probabilities for match outcome [home_loss, home_win]."""
-        predicted_score_differences = self.model.predict(dataframe)
-        return self.calculate_probabilities(predicted_score_differences)
-
     def save_model(self, path: os.PathLike) -> None:
         """Save ML model."""
         self.model.save_model(path)
-
-    def home_team_win_probability(self, score_difference: float) -> float:
-        """Calculate the probability of home team winning based on score difference."""
-        slope = 0.8  # range optimal 0.1 to 1. liked 0.3 and 0.5 (maybe 1)
-        return 1 / (1 + np.exp(-slope * score_difference))
-
-    def calculate_probabilities(self, score_differences: np.ndarray) -> pd.DataFrame:
-        """Calculate the probabilities of teams winning based on score differences."""
-        probabilities = []
-
-        for score_difference in score_differences:
-            home_prob = self.home_team_win_probability(score_difference)
-            away_prob = 1 - home_prob
-            probabilities.append((home_prob, away_prob))
-
-        return pd.DataFrame(probabilities, columns=pd.Index(["WinHome", "WinAway"]))
