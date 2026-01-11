@@ -13,8 +13,9 @@ from keras import optimizers
 from keras.callbacks import EarlyStopping
 from keras.layers import (
     Concatenate,
-    Conv1D,
     Dense,
+    DepthwiseConv1D,
+    Dropout,
     Flatten,
     Input,
     MaxPooling1D,
@@ -202,29 +203,57 @@ class Model:
     ) -> None:
         """Initialize model from path."""
         print("Initializing model...")
-        main_input = Input(shape=nd_shape[1:], name="main_input")
-        scalar_input = Input(shape=scalar_shape[1:], name="scalar_input")
+        main_input = Input(shape=nd_shape[1:], name="matrix_input")
+        scalar_input = Input(shape=scalar_shape[1:], name="vector_input")
 
-        x = Conv1D(16, 16, activation="tanh", padding="same", kernel_regularizer=L2())(
-            main_input
+        x = DepthwiseConv1D(
+            24,
+            strides=4,
+            activation="relu",
+            padding="same",
+            depthwise_regularizer=L2(),
+            data_format="channels_first",
+        )(main_input)
+        x = MaxPooling1D(4, strides=2, data_format="channels_first")(x)
+
+        y = DepthwiseConv1D(
+            12,
+            strides=4,
+            activation="relu",
+            padding="same",
+            depthwise_regularizer=L2(),
+            data_format="channels_first",
+        )(main_input)
+        y = MaxPooling1D(4, strides=2, data_format="channels_first")(y)
+
+        z = DepthwiseConv1D(
+            6,
+            strides=4,
+            activation="relu",
+            padding="same",
+            depthwise_regularizer=L2(),
+            data_format="channels_first",
+        )(main_input)
+        z = MaxPooling1D(4, strides=2, data_format="channels_first")(z)
+
+        combined = Concatenate()(
+            [Flatten()(x), Flatten()(y), Flatten()(z), scalar_input]
         )
-        x = MaxPooling1D(8, strides=1)(x)
-        x = Conv1D(8, 8, activation="tanh", padding="same", kernel_regularizer=L2())(x)
-        x = MaxPooling1D(4, strides=1)(x)
-        x = Flatten()(x)
-
-        combined = Concatenate()([x, scalar_input])
-
-        dense = Dense(32, activation="tanh", kernel_regularizer=L2())(combined)
-        output = Dense(1, name="output", use_bias=True)(dense)
+        combined = Dropout(0.5)(combined)
+        combined = Dense(
+            16,
+            activation="tanh",
+            kernel_regularizer=L2(),
+            use_bias=True,
+            bias_regularizer=L2(),
+        )(combined)
+        output = Dense(1, name="output", use_bias=True)(combined)
 
         self.model = keras.Model(inputs=[main_input, scalar_input], outputs=output)
 
         print(self.model.summary())
 
-        optimizer = optimizers.Adam(
-            learning_rate=0.01, beta_1=0.9, beta_2=0.999, amsgrad=False
-        )
+        optimizer = optimizers.Adam(learning_rate=0.01)
 
         self.model.compile(loss="mean_squared_error", optimizer=optimizer)
 
