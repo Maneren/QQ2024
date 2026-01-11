@@ -39,7 +39,7 @@ class PlotLosses(Callback):
         self.fig.tight_layout()
         self.ax2 = self.ax.twinx()
 
-    def on_epoch_end(self, epoch, logs={}):
+    def on_epoch_end(self, epoch, logs):
         loss = logs.get("loss")
         val_loss = logs.get("val_loss")
         self.x.append(self.i)
@@ -104,20 +104,16 @@ class FeatureSensitivityLogger(Callback):
         super().__init__()
         self.mean_absolute_sensitivity_over_epochs = []
         self.mean_sensitivity_over_epochs = []
-        self.nd_data = nd_data
-        self.scalar_data = scalar_data
+        nd_tensor = tf.convert_to_tensor(nd_data, dtype=tf.float32)
+        scalar_tensor = tf.convert_to_tensor(scalar_data, dtype=tf.float32)
+        self.inputs = [nd_tensor, scalar_tensor]
 
     def on_epoch_end(self, epoch, logs=None):
-        nd_tensor = tf.convert_to_tensor(self.nd_data, dtype=tf.float32)
-        scalar_tensor = tf.convert_to_tensor(self.scalar_data, dtype=tf.float32)
-
         with tf.GradientTape() as tape:
-            tape.watch([nd_tensor, scalar_tensor])
-            predictions = self.model([nd_tensor, scalar_tensor])
+            tape.watch(self.inputs)
+            predictions = self.model(self.inputs)
 
-        nd_sensitivities, scalar_sensitivities = tape.gradient(
-            predictions, [nd_tensor, scalar_tensor]
-        )
+        nd_sensitivities, scalar_sensitivities = tape.gradient(predictions, self.inputs)
 
         scalar_numpy = scalar_sensitivities.numpy()
         nd_numpy = nd_sensitivities.numpy()
