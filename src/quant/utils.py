@@ -47,12 +47,18 @@ class PlotLosses(Callback):
         self.losses.append(loss)
         self.val_losses.append(val_loss)
 
-        accuracy_train = accuracy(self.y_train, self.model.predict(self.x_train))
-        accuracy_val = accuracy(self.y_val, self.model.predict(self.x_val))
+        print()
+
+        train_pred = self.model.predict(self.x_train)
+        val_pred = self.model.predict(self.x_val)
+
+        accuracy_train = accuracy(self.y_train, train_pred)
+        accuracy_val = accuracy(self.y_val, val_pred)
+        waccuracy_train = weighted_accuracy(self.y_train, train_pred)
+        waccuracy_val = weighted_accuracy(self.y_val, val_pred)
         print(
-            f"Epoch {self.i}: \n"
             f"Accuracy train: {accuracy_train:.4f} val: {accuracy_val:.4f}\n"
-            f"MSE loss train: {loss:.4f} val: {val_loss:.4f}"
+            f"Weighted accuracy train: {waccuracy_train:.4f} val: {waccuracy_val:.4f}"
         )
         self.accuracy_train.append(accuracy_train)
         self.accuracy_val.append(accuracy_val)

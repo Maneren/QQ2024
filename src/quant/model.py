@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from itertools import product
 from typing import TYPE_CHECKING, cast
 
 import keras
@@ -136,7 +137,7 @@ class Model:
             shuffle=True,
             epochs=1000,
             batch_size=500,
-            verbose=0,
+            verbose=1,
             validation_data=(x_val, y_val),
             callbacks=[
                 plot_losses,
