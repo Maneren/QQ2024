@@ -1,5 +1,6 @@
-from typing import cast
+from collections import deque
 import numpy as np
+from numpy.typing import NDArray
 
 
 class RollingQueue:
@@ -7,16 +8,19 @@ class RollingQueue:
 
     def __init__(self, n: int) -> None:
         """Initialize queue."""
-        self.values = np.zeros((n,), dtype=np.float64)
-        self.index = 0
+        self.__values: deque[np.float64] = deque(maxlen=n)
+        self.__result = np.zeros((n,), dtype=np.float64)
+        self.__n = n
+        self.__size = 0
 
     def put(self, value: np.float64) -> None:
         """Put new value in queue."""
-        self.values[self.index % len(self.values)] = value
-        self.index += 1
+        self.__values.append(value)
+        self.__size = min(self.__size + 1, self.__n)
 
-    def average(self) -> np.float64:
-        """Return average value."""
-        return (
-            cast(np.float64, np.mean(self.values)) if self.index > 0 else np.float64(0)
-        )
+    @property
+    def values(self) -> NDArray[np.float64]:
+        if self.__size:
+            self.__result[-self.__size :] = self.__values
+
+        return self.__result
