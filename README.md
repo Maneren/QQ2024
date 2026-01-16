@@ -1,14 +1,27 @@
 # Qminers Quant Hackathon 2024
 
-## Struktura repozitáře
+## Repository Structure
 
-- `problem_info.md` obsahuje detailní [zadání](problem_info.md) úlohy včetně popisu dat
-- `data/games.csv` a `data/players.csv` obsahují trénovací data.
-- `src/environment.py` obsahuje evaluační smyčku
-- `src/evaluate.py` skript pro spuštění lokáního vyhodnocení tvého modelu na trénovacích datech.
-- `src/quant` obsahuje implementaci modelu
-  - `quant/model.py` hlavní kód modelu
-    - `Model` - organizuje zpracování dat a trénovaní modelu
-    - `AI` - obal okolo tensorflow modelu
-  - `quant/data.py` třídy pro práci s načtenými daty
-  - zbytek jsou různé pomocné třídy a funkce
+- `problem_info.md` contains detailed [problem statement](problem_info.md) including data description
+- `data/games.csv` and `data/players.csv` contain training data.
+- `src/main.py` script for running local training and evaluation
+- `src/quant` contains model implementation
+  - `quant/model.py` main model code
+    - `Model` - organizes data processing and model training
+  - `quant/data.py` classes for working with loaded data
+  - the rest are various helper classes and functions
+
+## Running
+
+Requires at least Python 3.13 and a package manager with PEP508 support, e.g.
+[`uv`](https://docs.astral.sh/uv/). Then run as follows:
+
+```sh
+uv sync
+uv run src/main.py
+```
+
+> [!note]
+> First run will process input data and save it to the file
+> `data/training_data.npz`, subsequent runs will only read data from it and
+> won't reprocess it.
