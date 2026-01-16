@@ -22,36 +22,36 @@ class TeamData:
 
     N = 32
 
-    TEAM_VECTOR_COLUMNS: tuple[str, ...] = (
-        "WR",
-        "WRH",
-        "WRA",
-        "PSA",
-        "PSAH",
-        "PSAA",
-        "FGM",
-        "FGA",
-        "FG3M",
-        "FG3A",
-        "FTM",
-        "FTA",
-        "ORB",
-        "DRB",
-        "RB",
-        "AST",
-        "STL",
-        "BLK",
-        "TOV",
-        "PF",
+    TEAM_VECTOR_FEATURES: tuple[str, ...] = (
+        "WR",  # wins
+        "WRH",  # wins home
+        "WRA",  # wins away
+        "PSA",  # points scored
+        "PSAH",  # points scored home
+        "PSAA",  # points scored away
+        "FGM",  # successful throws
+        "FGA",  # attempted throws
+        "FG3M",  # successful 3-point throws
+        "FG3A",  # attempted 3-point throws
+        "FTM",  # successful free throws
+        "FTA",  # attempted free throws
+        "ORB",  # offensive rebounds
+        "DRB",  # defensive rebounds
+        "RB",  # rebounds
+        "AST",  # assists
+        "STL",  # steals
+        "BLK",  # blocks
+        "TOV",  # turnovers
+        "PF",  # fouls
     )
 
-    TEAM_SCALAR_COLUMNS: tuple[str, ...] = ("DSLM",)
+    TEAM_SCALAR_FEATURES: tuple[str, ...] = ("DSLM",)  # days since last match
 
-    MATCH_VECTOR_COLUMNS: tuple[str, ...] = prefix_columns(
-        ["H_", "A_"], TEAM_VECTOR_COLUMNS
+    MATCH_VECTOR_FEATURES: tuple[str, ...] = prefix_columns(
+        ["H_", "A_"], TEAM_VECTOR_FEATURES
     )
 
-    MATCH_SCALAR_COLUMNS = prefix_columns(["H_", "A_"], TEAM_SCALAR_COLUMNS)
+    MATCH_SCALAR_FEATURES = prefix_columns(["H_", "A_"], TEAM_SCALAR_FEATURES)
 
     def __init__(
         self,
@@ -156,6 +156,7 @@ class TeamData:
                 self.pf.values,
             ],
         )
+        # print(vector_parameters)
         scalar_parameters = np.array(
             [self._get_days_since_last_match(date)], dtype=np.float64
         )

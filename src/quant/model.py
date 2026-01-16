@@ -32,20 +32,20 @@ from quant.utils import (
 if TYPE_CHECKING:
     import os
 
-SCALAR_COLUMNS: tuple[str, ...] = (
+SCALAR_FEATURES: tuple[str, ...] = (
     "HE",
     "AE",
     "HEBL",
     "AEBL",
 )
-MATCH_SCALAR_COLUMNS: tuple[str, ...] = (
-    *SCALAR_COLUMNS,
-    *TeamData.MATCH_SCALAR_COLUMNS,
+MATCH_SCALAR_FEATURES: tuple[str, ...] = (
+    *SCALAR_FEATURES,
+    *TeamData.MATCH_SCALAR_FEATURES,
 )
-MATCH_VECTOR_COLUMNS = TeamData.MATCH_VECTOR_COLUMNS
-TRAINING_DATA_COLUMNS: tuple[str, ...] = (
-    *MATCH_SCALAR_COLUMNS,
-    *TeamData.MATCH_VECTOR_COLUMNS,
+MATCH_VECTOR_FEATURES = TeamData.MATCH_VECTOR_FEATURES
+TRAINING_DATA_FEATURES: tuple[str, ...] = (
+    *MATCH_SCALAR_FEATURES,
+    *TeamData.MATCH_VECTOR_FEATURES,
 )
 
 
@@ -167,7 +167,7 @@ class Model:
         print(
             *sorted(
                 zip(
-                    TRAINING_DATA_COLUMNS,
+                    TRAINING_DATA_FEATURES,
                     map(float, ma_sensitivity_over_epochs[-1]),
                 ),
                 key=lambda item: item[1],
@@ -187,7 +187,7 @@ class Model:
         x = DepthwiseConv1D(
             24,
             strides=4,
-            activation="relu",
+            activation="leaky_relu",
             padding="same",
             depthwise_regularizer=L2(),
             data_format="channels_first",
@@ -197,7 +197,7 @@ class Model:
         y = DepthwiseConv1D(
             12,
             strides=4,
-            activation="relu",
+            activation="leaky_relu",
             padding="same",
             depthwise_regularizer=L2(),
             data_format="channels_first",
@@ -207,7 +207,7 @@ class Model:
         z = DepthwiseConv1D(
             6,
             strides=4,
-            activation="relu",
+            activation="leaky_relu",
             padding="same",
             depthwise_regularizer=L2(),
             data_format="channels_first",
@@ -217,10 +217,10 @@ class Model:
         combined = Concatenate()(
             [Flatten()(x), Flatten()(y), Flatten()(z), scalar_input]
         )
-        combined = Dropout(0.5)(combined)
+        combined = Dropout(0.2)(combined)
         combined = Dense(
-            16,
-            activation="tanh",
+            8,
+            activation="leaky_relu",
             kernel_regularizer=L2(),
             use_bias=True,
             bias_regularizer=L2(),

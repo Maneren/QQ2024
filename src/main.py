@@ -9,7 +9,7 @@ from quant.files import (
     load_source_data,
     save_dataset,
 )
-from quant.model import MATCH_SCALAR_COLUMNS, MATCH_VECTOR_COLUMNS, Model
+from quant.model import MATCH_SCALAR_FEATURES, MATCH_VECTOR_FEATURES, Model
 from quant.ranking import Elo, EloByLocation
 from quant.types import Match, Opp, match_to_opp
 from tqdm import tqdm
@@ -43,8 +43,8 @@ def dataframe_to_tensors(dataframe: pd.DataFrame) -> DatasetTensors:
         return vector_parameters, scalar_parameters
 
     samples = len(dataframe)
-    nd_data = np.zeros((samples, len(MATCH_VECTOR_COLUMNS), TeamData.N))
-    scalar_data = np.zeros((samples, len(MATCH_SCALAR_COLUMNS)))
+    nd_data = np.zeros((samples, len(MATCH_VECTOR_FEATURES), TeamData.N))
+    scalar_data = np.zeros((samples, len(MATCH_SCALAR_FEATURES)))
     outcomes = np.zeros((samples,))
 
     for i, match in tqdm(
