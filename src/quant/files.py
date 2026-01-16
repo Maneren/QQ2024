@@ -32,6 +32,7 @@ def save_dataset(
 
 
 def load_source_data() -> pd.DataFrame:
+    """Load source data."""
     dataframe = pd.read_csv(DATA_FOLDER / "games.csv", index_col=0)
     dataframe["Date"] = pd.to_datetime(dataframe["Date"])
     dataframe.drop(columns=["Open"], inplace=True)

@@ -1,51 +1,45 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import tensorflow as tf
 from tensorflow import keras
 from keras.callbacks import Callback
 
 
 def accuracy(y_true, y_pred):
+    """Calculate prediction accuracy based on sign matching."""
     sign_true = np.sign(y_true)
     sign_pred = np.sign(y_pred)
     return np.mean(sign_true == sign_pred)
 
 
 def weighted_accuracy(y_true, y_pred):
+    """Calculate weighted prediction accuracy based on prediction magnitude."""
     sign_true = np.sign(y_true)
     sign_pred = np.sign(y_pred)
     return np.average(sign_true == sign_pred, weights=np.abs(y_pred))
 
 
 class PlotLosses(Callback):
+    """Callback for tracking and optionally plotting training metrics."""
+
     def __init__(self, x_train, y_train, x_val, y_val):
         super(PlotLosses, self).__init__()
         self.x_train = x_train
         self.y_train = y_train
         self.x_val = x_val
         self.y_val = y_val
+        self.i: int = 0
 
-    def on_train_begin(self, logs={}):
+    def on_train_begin(self, logs=None):
+        if logs is None:
+            logs = {}
         self.i = 0
-        self.x = []
-        self.losses = []
-        self.val_losses = []
-        self.accuracy_train = []
-        self.accuracy_val = []
 
-        # # Enable interactive mode for live updates
-        # plt.ion()
-        # self.fig, self.ax = plt.subplots()
-        # self.fig.tight_layout()
-        # self.ax2 = self.ax.twinx()
-
-    def on_epoch_end(self, epoch, logs):
+    def on_epoch_end(self, epoch, logs=None):
+        if logs is None:
+            logs = {}
         self.i += 1
-        loss = logs.get("loss")
-        val_loss = logs.get("val_loss")
-        self.x.append(self.i)
-        self.losses.append(loss)
-        self.val_losses.append(val_loss)
+        loss_train = logs.get("loss", 0.0)
+        loss_val = logs.get("val_loss", 0.0)
 
         print()
 
@@ -56,58 +50,35 @@ class PlotLosses(Callback):
         accuracy_val = accuracy(self.y_val, val_pred)
         waccuracy_train = weighted_accuracy(self.y_train, train_pred)
         waccuracy_val = weighted_accuracy(self.y_val, val_pred)
+
         print(
+            f"Epoch {self.i}: loss: {loss_train:.4f} val_loss: {loss_val:.4f}\n"
             f"Accuracy train: {accuracy_train:.4f} val: {accuracy_val:.4f}\n"
             f"Weighted accuracy train: {waccuracy_train:.4f} val: {waccuracy_val:.4f}"
         )
-        self.accuracy_train.append(accuracy_train)
-        self.accuracy_val.append(accuracy_val)
-
-        # # Clear the current axes and redraw
-        # self.ax.clear()
-        # self.ax.set_title("Training and Validation Loss/Accuracy")
-        # self.ax.set_xlabel("Epoch")
-        # self.ax.set_ylabel("Loss")
-        #
-        # self.ax.set_yscale("log")
-        # self.ax.plot(self.x, self.losses, label="loss")
-        # self.ax.plot(self.x, self.val_losses, label="val_loss")
-        # self.ax.legend(loc="upper left")
-        #
-        # self.ax2.clear()
-        # self.ax2.set_ylabel("Accuracy")
-        # self.ax2.plot(self.x, self.accuracy_train, label="accuracy_train", color="red")
-        # self.ax2.plot(self.x, self.accuracy_val, label="accuracy_val", color="green")
-        # self.ax2.legend(loc="upper right")
-        #
-        # # Update the plot
-        # plt.locator_params(axis="both", nbins=10)
-        # plt.draw()
-        # plt.pause(0.01)  # Small pause to allow plot to update
-
-    def on_train_end(self, logs={}):
-        # Turn off interactive mode and show final plot
-        # plt.ioff()
-        # plt.show()
-        pass
 
 
 class ActivationLogger(Callback):
+    """Callback for logging activation values during training."""
+
     def __init__(self, data):
         super().__init__()
         self.data = data
         self.epoch_activations = []
 
     def on_epoch_end(self, epoch, logs=None):
-        layer_output = keras.Model(
-            inputs=self.model.inputs,
-            outputs=self.model.outputs,
-        )
-        activation_values = layer_output(self.data, training=False)
-        self.epoch_activations.append(activation_values.numpy())
+        if self.model is not None:
+            layer_output = keras.Model(
+                inputs=self.model.inputs,
+                outputs=self.model.outputs,
+            )
+            activation_values = layer_output(self.data, training=False)
+            self.epoch_activations.append(activation_values.numpy())
 
 
 class FeatureSensitivityLogger(Callback):
+    """Callback for logging feature sensitivity using gradient-based analysis."""
+
     def __init__(self, nd_data, scalar_data):
         super().__init__()
         self.mean_absolute_sensitivity_over_epochs = []
@@ -117,14 +88,36 @@ class FeatureSensitivityLogger(Callback):
         self.inputs = [nd_tensor, scalar_tensor]
 
     def on_epoch_end(self, epoch, logs=None):
+        if self.model is None:
+            return
+
         with tf.GradientTape() as tape:
             tape.watch(self.inputs)
             predictions = self.model(self.inputs)
 
-        nd_sensitivities, scalar_sensitivities = tape.gradient(predictions, self.inputs)
+        gradients = tape.gradient(predictions, self.inputs)
+        if gradients is None or len(gradients) < 2:
+            return
 
-        scalar_numpy = scalar_sensitivities.numpy()
-        nd_numpy = nd_sensitivities.numpy()
+        nd_sens, scalar_sens = gradients
+
+        if nd_sens is None or scalar_sens is None:
+            return
+
+        # Convert IndexedSlices to dense tensors if needed, then to numpy
+        if hasattr(nd_sens, "values"):
+            nd_tensor = tf.convert_to_tensor(nd_sens)
+            nd_numpy = nd_tensor.numpy()
+        else:
+            nd_tensor = tf.convert_to_tensor(nd_sens)
+            nd_numpy = nd_tensor.numpy()
+
+        if hasattr(scalar_sens, "values"):
+            scalar_tensor = tf.convert_to_tensor(scalar_sens)
+            scalar_numpy = scalar_tensor.numpy()
+        else:
+            scalar_tensor = tf.convert_to_tensor(scalar_sens)
+            scalar_numpy = scalar_tensor.numpy()
 
         mean_sensitivity = np.mean(
             np.concatenate([scalar_numpy, nd_numpy.sum(axis=2)], axis=1), axis=0

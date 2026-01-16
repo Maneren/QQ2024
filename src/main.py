@@ -66,7 +66,7 @@ def dataframe_to_tensors(dataframe: pd.DataFrame) -> DatasetTensors:
 
 
 def get_dataset() -> DatasetTensors:
-    """Train AI."""
+    """Load or create training dataset from source data."""
 
     if (dataset := load_cached_dataset(DATASET_NAME)) is not None:
         print("Loading cached dataset...")
@@ -83,9 +83,10 @@ def get_dataset() -> DatasetTensors:
 
 
 def main():
-    dataset = get_dataset()
+    """Main entry point for model training."""
+    nd_data, scalar_data, _ = dataset = get_dataset()
 
-    model = Model()
+    model = Model(nd_data.shape[1:], scalar_data.shape[1:])
     model.train_reg(*dataset)
 
 

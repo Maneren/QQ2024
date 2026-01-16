@@ -29,16 +29,13 @@ class TeamElo:
     A: int = 400
     K: int = 40
     BASE: int = 160
-    opponents: int
-    games: int
-    wins: int
-    rating: float
 
     def __init__(self) -> None:
         """Initialize TeamElo."""
-        self.games = 0
-        self.wins = 0
-        self.rating = 1000
+        self.opponents: int = 0
+        self.games: int = 0
+        self.wins: int = 0
+        self.rating: float = 1000.0
 
     def adjust(self, opponent_elo: float, win: int) -> None:
         """

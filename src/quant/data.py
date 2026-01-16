@@ -14,6 +14,7 @@ import numpy as np
 def prefix_columns(
     prefixes: Iterable[str], columns: tuple[str, ...]
 ) -> tuple[str, ...]:
+    """Generate column names by combining prefixes with base columns."""
     return tuple(starmap(add, product(prefixes, columns)))
 
 
@@ -56,7 +57,7 @@ class TeamData:
     def __init__(
         self,
     ) -> None:
-        """Init datastucture."""
+        """Init data structure."""
         self.date_last_match: pd.Timestamp = pd.to_datetime("1975-11-07")
 
         self.wins = RollingQueue(TeamData.N)
@@ -92,11 +93,11 @@ class TeamData:
         self.pf = RollingQueue(TeamData.N)
 
     def _get_days_since_last_match(self, today: pd.Timestamp) -> int:
-        """Return number of days scince last mach."""
+        """Return number of days since last mach."""
         return (today - self.date_last_match).days
 
     def update(self, match: Match, played_as: Team) -> None:
-        """Update team data based on data from one mach."""
+        """Update team data based on data from one match."""
         self.date_last_match = max(pd.to_datetime(match.Date), self.date_last_match)
 
         win = match.H if played_as == Team.Home else match.A

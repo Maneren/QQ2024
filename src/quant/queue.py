@@ -20,6 +20,7 @@ class RollingQueue:
 
     @property
     def values(self) -> NDArray[np.float64]:
+        """Return values as NumPy array."""
         if self.__size:
             self.__result[-self.__size :] = self.__values
 

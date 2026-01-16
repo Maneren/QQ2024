@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 from itertools import product
-from typing import TYPE_CHECKING, cast
+from pathlib import Path
 
 import keras
 import numpy as np
 import tensorflow as tf
-from keras import optimizers
+from keras.optimizers import Adam
 from keras.callbacks import EarlyStopping
 from keras.layers import (
     Concatenate,
@@ -29,8 +29,8 @@ from quant.utils import (
     weighted_accuracy,
 )
 
-if TYPE_CHECKING:
-    import os
+
+tf.random.set_seed(42)
 
 SCALAR_FEATURES: tuple[str, ...] = (
     "HE",
@@ -49,6 +49,64 @@ TRAINING_DATA_FEATURES: tuple[str, ...] = (
 )
 
 
+def initialize_model(
+    nd_shape: tuple[int, ...], scalar_shape: tuple[int, ...]
+) -> tf.Model:
+    """Initialize the model."""
+    print("Initializing model...")
+    main_input = Input(shape=nd_shape, name="matrix_input")
+    scalar_input = Input(shape=scalar_shape, name="vector_input")
+
+    x = DepthwiseConv1D(
+        24,
+        strides=4,
+        activation="leaky_relu",
+        padding="same",
+        depthwise_regularizer=L2(),
+        data_format="channels_first",
+    )(main_input)
+    x = MaxPooling1D(4, strides=2, data_format="channels_first")(x)
+
+    y = DepthwiseConv1D(
+        12,
+        strides=4,
+        activation="leaky_relu",
+        padding="same",
+        depthwise_regularizer=L2(),
+        data_format="channels_first",
+    )(main_input)
+    y = MaxPooling1D(4, strides=2, data_format="channels_first")(y)
+
+    z = DepthwiseConv1D(
+        6,
+        strides=4,
+        activation="leaky_relu",
+        padding="same",
+        depthwise_regularizer=L2(),
+        data_format="channels_first",
+    )(main_input)
+    z = MaxPooling1D(4, strides=2, data_format="channels_first")(z)
+
+    combined = Concatenate()([Flatten()(x), Flatten()(y), Flatten()(z), scalar_input])
+    combined = Dropout(0.2)(combined)
+    combined = Dense(
+        8,
+        activation="leaky_relu",
+        kernel_regularizer=L2(),
+        use_bias=True,
+        bias_regularizer=L2(),
+    )(combined)
+    output = Dense(1, name="output", use_bias=True)(combined)
+
+    model = keras.Model(inputs=[main_input, scalar_input], outputs=output)
+
+    print(model.summary())
+
+    model.compile(loss="mean_squared_error", optimizer=Adam(learning_rate=0.01))
+
+    return model
+
+
 class Model:
     """Class for training and predicting."""
 
@@ -57,8 +115,9 @@ class Model:
     x_scalar_scaler: StandardScaler
     y_scaler: StandardScaler
 
-    def __init__(self):
+    def __init__(self, nd_shape: tuple[int, ...], scalar_shape: tuple[int, ...]):
         self.initialized = False
+        self.model = initialize_model(nd_shape, scalar_shape)
         self.x_nd_scaler = StandardScaler()
         self.x_scalar_scaler = StandardScaler()
         self.y_scaler = StandardScaler()
@@ -72,52 +131,50 @@ class Model:
         print("Data shape:", nd_data.shape)
         print("Outcomes shape:", outcomes.shape)
 
-        x_nd_train: np.ndarray
-        x_nd_val: np.ndarray
-        x_scalar_train: np.ndarray
-        x_scalar_val: np.ndarray
-        y_train: np.ndarray
-        y_val: np.ndarray
-
-        x_nd_train, x_nd_val, x_scalar_train, x_scalar_val, y_train, y_val = cast(
-            tuple[np.ndarray, ...],
-            model_selection.train_test_split(
-                nd_data,
-                scalar_data,
-                outcomes[:, np.newaxis],
-                test_size=0.3,
-                shuffle=True,
-                random_state=42,
-            ),
+        split_result = model_selection.train_test_split(
+            nd_data,
+            scalar_data,
+            outcomes[:, np.newaxis],
+            test_size=0.3,
+            shuffle=True,
+            random_state=42,
         )
+
+        x_nd_train = np.asarray(split_result[0])
+        x_nd_val = np.asarray(split_result[1])
+        x_scalar_train = np.asarray(split_result[2])
+        x_scalar_val = np.asarray(split_result[3])
+        y_train = np.asarray(split_result[4])
+        y_val = np.asarray(split_result[5])
 
         flat_x_train = x_nd_train.reshape(x_nd_train.shape[0], -1)
         flat_x_val = x_nd_val.reshape(x_nd_val.shape[0], -1)
 
         if not self.initialized:
-            tf.random.set_seed(42)
-            self.initialize_model(x_nd_train.shape, scalar_data.shape)
             self.initialized = True
 
-            print("Normalizing data...")
-            norm_x_nd_train: np.ndarray = self.x_nd_scaler.fit_transform(flat_x_train)
-            x_scalar_train = self.x_scalar_scaler.fit_transform(x_scalar_train)
-            y_train = self.y_scaler.fit_transform(y_train)
-        else:
-            print("Normalizing data...")
-            norm_x_nd_train: np.ndarray = self.x_nd_scaler.transform(flat_x_train)
-            x_scalar_train = self.x_scalar_scaler.transform(x_scalar_train)
-            y_train = self.y_scaler.transform(y_train)
+            print("Fitting scaler to data...")
+            self.x_nd_scaler.fit(flat_x_train)
+            self.x_scalar_scaler.fit(x_scalar_train)
+            self.y_scaler.fit(y_train)
 
-        norm_x_nd_val: np.ndarray = self.x_nd_scaler.transform(flat_x_val)
-        x_scalar_val = self.x_scalar_scaler.transform(x_scalar_val)
-        x_nd_train = norm_x_nd_train.reshape(x_nd_train.shape)
-        x_nd_val = norm_x_nd_val.reshape(x_nd_val.shape)
+        print("Normalizing data...")
+        norm_x_nd_train = np.asarray(self.x_nd_scaler.transform(flat_x_train))
+        x_scalar_train = np.asarray(self.x_scalar_scaler.transform(x_scalar_train))
+        y_train = np.asarray(self.y_scaler.transform(y_train))
 
-        y_val = self.y_scaler.transform(y_val)
+        norm_x_nd_val: np.ndarray = np.asarray(self.x_nd_scaler.transform(flat_x_val))
+        x_scalar_val = np.asarray(self.x_scalar_scaler.transform(x_scalar_val))
 
-        x_train = [x_nd_train, x_scalar_train]
-        x_val = [x_nd_val, x_scalar_val]
+        original_nd_train_shape = np.asarray(split_result[0]).shape
+        original_nd_val_shape = np.asarray(split_result[1]).shape
+        x_nd_train = norm_x_nd_train.reshape(original_nd_train_shape)
+        x_nd_val = norm_x_nd_val.reshape(original_nd_val_shape)
+
+        y_val = np.asarray(self.y_scaler.transform(y_val))
+
+        x_train = (x_nd_train, x_scalar_train)
+        x_val = (x_nd_val, x_scalar_val)
 
         early_stopping = EarlyStopping(
             monitor="val_loss", patience=20, restore_best_weights=True
@@ -176,65 +233,6 @@ class Model:
             sep="\n",
         )
 
-    def initialize_model(
-        self, nd_shape: tuple[int, ...], scalar_shape: tuple[int, ...]
-    ) -> None:
-        """Initialize model from path."""
-        print("Initializing model...")
-        main_input = Input(shape=nd_shape[1:], name="matrix_input")
-        scalar_input = Input(shape=scalar_shape[1:], name="vector_input")
-
-        x = DepthwiseConv1D(
-            24,
-            strides=4,
-            activation="leaky_relu",
-            padding="same",
-            depthwise_regularizer=L2(),
-            data_format="channels_first",
-        )(main_input)
-        x = MaxPooling1D(4, strides=2, data_format="channels_first")(x)
-
-        y = DepthwiseConv1D(
-            12,
-            strides=4,
-            activation="leaky_relu",
-            padding="same",
-            depthwise_regularizer=L2(),
-            data_format="channels_first",
-        )(main_input)
-        y = MaxPooling1D(4, strides=2, data_format="channels_first")(y)
-
-        z = DepthwiseConv1D(
-            6,
-            strides=4,
-            activation="leaky_relu",
-            padding="same",
-            depthwise_regularizer=L2(),
-            data_format="channels_first",
-        )(main_input)
-        z = MaxPooling1D(4, strides=2, data_format="channels_first")(z)
-
-        combined = Concatenate()(
-            [Flatten()(x), Flatten()(y), Flatten()(z), scalar_input]
-        )
-        combined = Dropout(0.2)(combined)
-        combined = Dense(
-            8,
-            activation="leaky_relu",
-            kernel_regularizer=L2(),
-            use_bias=True,
-            bias_regularizer=L2(),
-        )(combined)
-        output = Dense(1, name="output", use_bias=True)(combined)
-
-        self.model = keras.Model(inputs=[main_input, scalar_input], outputs=output)
-
-        print(self.model.summary())
-
-        optimizer = optimizers.Adam(learning_rate=0.01)
-
-        self.model.compile(loss="mean_squared_error", optimizer=optimizer)
-
-    def save_model(self, path: os.PathLike) -> None:
+    def save_model(self, path: str | Path) -> None:
         """Save ML model."""
         self.model.save_model(path)
